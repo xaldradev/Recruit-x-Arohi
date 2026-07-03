@@ -1622,6 +1622,64 @@ ${fallbackResumeData.skills.join(', ')}
  *How can I help you take the next big step in your career journey today? Just type your query below!*`;
 }
 
+// Dynamic Sitemap generator for SEO crawler exposure all over India
+app.get('/sitemap.xml', (req, res) => {
+  const currentDate = new Date().toISOString().split('T')[0];
+  res.header('Content-Type', 'application/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Main Platform Landing page -->
+  <url>
+    <loc>https://recruit.org.in/</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <!-- Career & Skill Course Training -->
+  <url>
+    <loc>https://recruit.org.in/?tab=dashboard</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Custom AI Roadmap & Path Planner -->
+  <url>
+    <loc>https://recruit.org.in/?tab=roadmap</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Interactive Live Mock Interviews -->
+  <url>
+    <loc>https://recruit.org.in/?tab=interview</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Advanced ATS Resume Score Engine -->
+  <url>
+    <loc>https://recruit.org.in/?tab=resume</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <!-- Mudra Loans & Mudra Scheme Assister -->
+  <url>
+    <loc>https://recruit.org.in/?tab=schemes</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <!-- Business Startup, Udyam & MSME Hub -->
+  <url>
+    <loc>https://recruit.org.in/?tab=business</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`);
+});
+
 // Vite middleware and asset delivery setup
 if (process.env.NODE_ENV !== 'production') {
   const vite = await createViteServer({
