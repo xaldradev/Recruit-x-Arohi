@@ -510,8 +510,15 @@ export default function WelcomeLanding({ onEnter, setActiveTab, language, onLang
               <button onClick={() => handleBadgeClick('business')} className="hover:text-teal-400 transition-colors cursor-pointer">Career Guidance</button>
             </div>
           </div>
-          <div className="text-[7.5px] sm:text-[9px] text-slate-500 tracking-wider font-semibold mt-1.5 uppercase">
-            DEVELOPED AND MAINTAINED BY <span className="text-slate-400 font-bold">BRAGA TECHNOLOGIES PRIVATE LIMITED</span> IN ASSOCIATION WITH <span className="text-slate-400 font-bold">ODITREE SERVICES</span>
+          <div className="text-[8px] sm:text-[10px] text-slate-500 tracking-wider font-semibold mt-2.5 uppercase flex flex-wrap items-center justify-center gap-2">
+            <span>Developed and maintained by</span>
+            <span className="text-[9.5px] sm:text-[11px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 shadow-[0_0_12px_rgba(99,102,241,0.1)] tracking-normal normal-case">
+              BRAGA TECHNOLOGIES PRIVATE LIMITED
+            </span>
+            <span>in association with</span>
+            <span className="text-[9.5px] sm:text-[11px] font-black text-[#00e676] bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 shadow-[0_0_12px_rgba(0,230,118,0.1)] tracking-normal normal-case">
+              ODITREE SERVICES
+            </span>
           </div>
         </motion.div>
 
