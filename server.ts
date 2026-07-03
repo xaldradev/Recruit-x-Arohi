@@ -361,6 +361,12 @@ let serverAdminUsers = [
   }
 ];
 
+let activeUpiMerchant = {
+  upiId: 'elitetraderjunoon@oksbi',
+  merchantName: 'Recruit India Portal',
+  bankName: 'Airtel Payments Bank / PhonePe'
+};
+
 let serverPayments = [
   {
     id: 'TXN-984102',
@@ -527,6 +533,111 @@ app.get('/api/admin/payments', (req, res) => {
     return res.status(403).json({ error: 'Access denied: Unauthorized' });
   }
   return res.json({ payments: serverPayments });
+});
+
+// GET active merchant settings (anyone can access, but specifically for candidates checkouts)
+app.get('/api/admin/payment-settings', (req, res) => {
+  return res.json(activeUpiMerchant);
+});
+
+// UPDATE active merchant settings
+app.post('/api/admin/payment-settings', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  const { upiId, merchantName, bankName } = req.body;
+  if (!upiId || !merchantName) {
+    return res.status(400).json({ error: 'upiId and merchantName are required' });
+  }
+  activeUpiMerchant = { 
+    upiId, 
+    merchantName, 
+    bankName: bankName || 'Airtel Payments Bank / PhonePe' 
+  };
+  logActivity('admin', `Admin updated UPI merchant settings: ${upiId} (${merchantName})`, activeUpiMerchant);
+  return res.json({ success: true, settings: activeUpiMerchant });
+});
+
+// SUBMIT PENDING UPI / QR PAYMENT
+app.post('/api/admin/submit-pending-payment', (req, res) => {
+  const { userEmail, amount, planName, utr, screenshotUrl } = req.body;
+  if (!userEmail || !amount || !planName || !utr) {
+    return res.status(400).json({ error: 'userEmail, amount, planName and transaction reference (UTR) are required' });
+  }
+
+  const newTxn = {
+    id: `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+    userEmail: userEmail.toLowerCase(),
+    amount: Number(amount),
+    planName,
+    method: 'UPI Scan',
+    date: new Date().toLocaleDateString('en-GB'),
+    status: 'Pending' as const,
+    utr,
+    screenshotUrl: screenshotUrl || ''
+  };
+
+  serverPayments.unshift(newTxn);
+  logActivity('enroll', `Candidate ${userEmail} scanned QR & submitted transaction ref (UTR): ${utr}`, newTxn);
+  return res.json({ success: true, transaction: newTxn });
+});
+
+// VERIFY / APPROVE PAYMENT
+app.post('/api/admin/verify-payment', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  const { id } = req.body;
+  if (!id) {
+    return res.status(400).json({ error: 'Transaction ID is required' });
+  }
+
+  const paymentIdx = serverPayments.findIndex(p => p.id === id);
+  if (paymentIdx === -1) {
+    return res.status(404).json({ error: 'Transaction not found' });
+  }
+
+  serverPayments[paymentIdx].status = 'Verified';
+  const payment = serverPayments[paymentIdx];
+
+  // Sync to server users list as well!
+  const userIdx = serverAdminUsers.findIndex(u => u.email.toLowerCase() === payment.userEmail.toLowerCase());
+  if (userIdx !== -1) {
+    const lowerPlan = payment.planName.toLowerCase();
+    if (lowerPlan.includes('path 1') || lowerPlan.includes('career') || lowerPlan.includes('resume')) {
+      serverAdminUsers[userIdx].services.path1 = true;
+    } else if (lowerPlan.includes('path 2') || lowerPlan.includes('skill')) {
+      serverAdminUsers[userIdx].services.path2 = true;
+    } else if (lowerPlan.includes('path 3') || lowerPlan.includes('udyam') || lowerPlan.includes('business')) {
+      serverAdminUsers[userIdx].services.path3 = true;
+    }
+    if (lowerPlan.includes('resume')) {
+      serverAdminUsers[userIdx].usage.resumeScans += 1;
+    }
+  } else {
+    const lowerPlan = payment.planName.toLowerCase();
+    const services = {
+      path1: lowerPlan.includes('path 1') || lowerPlan.includes('career') || lowerPlan.includes('resume'),
+      path2: lowerPlan.includes('path 2') || lowerPlan.includes('skill'),
+      path3: lowerPlan.includes('path 3') || lowerPlan.includes('udyam') || lowerPlan.includes('business')
+    };
+
+    serverAdminUsers.push({
+      id: `user-${Math.random().toString(36).substring(2, 9)}`,
+      email: payment.userEmail.toLowerCase(),
+      name: payment.userEmail.split('@')[0],
+      role: 'Premium Candidate',
+      status: 'Active',
+      permissions: { canEditJobs: false, canApproveApps: false, canViewFinance: false },
+      services,
+      takenCourses: [],
+      usage: { chatsWithArohi: 1, resumeScans: lowerPlan.includes('resume') ? 1 : 0, mockInterviews: 0 },
+      customizedSettings: { tutoringSlot: 'None Scheduled', priorityLevel: 'High', assignedMentor: 'Automated AI Guide' }
+    });
+  }
+
+  logActivity('admin', `Admin manually verified payment voucher ${id} for ${payment.userEmail}`, { id });
+  return res.json({ success: true, payment });
 });
 
 // 5. Add payment

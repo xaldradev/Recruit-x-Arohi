@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp({
@@ -9,10 +9,10 @@ const app = initializeApp({
 });
 export const auth = getAuth(app);
 
-// Initialize Firestore using the configured database ID if available
+// Initialize Firestore using initializeFirestore with experimentalForceLongPolling to prevent iframe connection issues
 export const db = firebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+  ? initializeFirestore(app, { experimentalForceLongPolling: true }, firebaseConfig.firestoreDatabaseId)
+  : initializeFirestore(app, { experimentalForceLongPolling: true });
 
 // Validate Connection to Firestore as per SKILL.md rules
 async function testConnection() {

@@ -74,6 +74,13 @@ export default function AdminPanel({
   const [customAiGuideline, setCustomAiGuideline] = useState('');
   const [guidelineSuccess, setGuidelineSuccess] = useState(false);
 
+  // Merchant UPI / QR Setup State variables
+  const [upiId, setUpiId] = useState('elitetraderjunoon@oksbi');
+  const [merchantName, setMerchantName] = useState('Recruit India Portal');
+  const [bankName, setBankName] = useState('Airtel Payments Bank / PhonePe');
+  const [isUpdatingUpi, setIsUpdatingUpi] = useState(false);
+  const [upiUpdateSuccess, setUpiUpdateSuccess] = useState(false);
+
   // UI state variables
   const [activeSubTab, setActiveSubTab] = useState<'telemetry' | 'users' | 'finance' | 'chats' | 'postings' | 'creator' | 'analytics'>('telemetry');
   const [telemetryLogs, setTelemetryLogs] = useState<any[]>([]);
@@ -132,6 +139,15 @@ export default function AdminPanel({
       if (responsePayments.ok) {
         const data = await responsePayments.json();
         setPayments(data.payments);
+      }
+
+      // Fetch UPI Merchant Settings
+      const responseUpiSettings = await fetch('/api/admin/payment-settings');
+      if (responseUpiSettings.ok) {
+        const upiData = await responseUpiSettings.json();
+        setUpiId(upiData.upiId);
+        setMerchantName(upiData.merchantName);
+        setBankName(upiData.bankName);
       }
 
       // 3. Fetch Chats List
@@ -1465,30 +1481,144 @@ export default function AdminPanel({
                   <Check className="w-4.5 h-4.5 text-[#00e676]" /> Manual Cash Flow Verifier
                 </h3>
 
-                <div className="space-y-2.5 max-h-[170px] overflow-y-auto">
+                <div className="space-y-3.5 max-h-[220px] overflow-y-auto pr-1">
                   {payments.filter(p => p.status === 'Pending').length === 0 ? (
                     <div className="text-center py-6 text-slate-500 text-xs italic">
                       No pending payment vouchers to verify.
                     </div>
                   ) : (
                     payments.filter(p => p.status === 'Pending').map((p) => (
-                      <div key={p.id} className="flex justify-between items-center bg-[#130f2c]/75 border border-[#2a1d56] p-3 rounded-xl">
-                        <div>
-                          <p className="text-xs font-black text-white">{p.userEmail}</p>
-                          <p className="text-[9px] text-[#00e676] font-mono mt-0.5">₹{p.amount} ({p.method})</p>
+                      <div key={p.id} className="bg-[#130f2c]/75 border border-[#2a1d56] p-3 rounded-xl space-y-2.5">
+                        <div className="flex justify-between items-start">
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-white truncate">{p.userEmail}</p>
+                            <p className="text-[9px] text-[#00e676] font-mono mt-0.5">₹{p.amount} ({p.method || 'UPI Scan'})</p>
+                          </div>
+                          <span className="text-[9px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded shrink-0">
+                            {p.id}
+                          </span>
                         </div>
+
+                        {p.utr && (
+                          <div className="bg-[#09061c] border border-[#23174f] px-2.5 py-1.5 rounded-lg flex justify-between items-center text-[10px] text-slate-300 font-mono">
+                            <span className="truncate">Ref/UTR: <strong className="text-purple-400 font-bold">{p.utr}</strong></span>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(p.utr);
+                                alert(`Copied UTR: ${p.utr}`);
+                              }}
+                              className="text-purple-400 hover:text-purple-300 hover:underline cursor-pointer text-[9px] shrink-0 ml-1 font-bold"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        )}
+
                         <button
-                          onClick={() => {
-                            setPayments(prev => prev.map(item => item.id === p.id ? { ...item, status: 'Verified' } : item));
-                            alert(`SUCCESS: Transaction ${p.id} manual voucher approved.`);
+                          onClick={async () => {
+                            const adminToken = sessionStorage.getItem('recruit_admin_token') || 'recruit_admin_authorized_token_2026';
+                            try {
+                              const res = await fetch('/api/admin/verify-payment', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${adminToken}`
+                                },
+                                body: JSON.stringify({ id: p.id })
+                              });
+                              if (res.ok) {
+                                setPayments(prev => prev.map(item => item.id === p.id ? { ...item, status: 'Verified' } : item));
+                                alert(`SUCCESS: Payment approved & premium services synced.`);
+                                fetchRealData();
+                              } else {
+                                const errData = await res.json();
+                                alert(`Error: ${errData.error || 'Failed to verify payment.'}`);
+                              }
+                            } catch (err) {
+                              console.error(err);
+                              alert('Failed to connect to backend server.');
+                            }
                           }}
-                          className="bg-emerald-950/80 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-800 px-3 py-1.5 rounded-xl text-[10px] font-bold cursor-pointer transition-all"
+                          className="w-full bg-emerald-950 hover:bg-emerald-600 border border-emerald-800 text-emerald-400 hover:text-white py-1.5 rounded-xl text-[10px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5"
                         >
-                          Verify Payment
+                          <Check className="w-3.5 h-3.5" /> Approve & Unlock Premium
                         </button>
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+
+              {/* Airtel Payments Bank / PhonePe Setup Widget */}
+              <div className="backdrop-blur-xl bg-[#090715]/70 border border-[#2b1b54]/80 p-5 rounded-3xl shadow-xl text-left space-y-4">
+                <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-300 border-b border-[#25174e] pb-3 flex items-center gap-1.5">
+                  <Settings className="w-4.5 h-4.5 text-purple-400" /> Airtel & PhonePe UPI Merchant config
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Airtel Payments Bank / PhonePe UPI ID</label>
+                    <input
+                      type="text"
+                      value={upiId}
+                      onChange={(e) => setUpiId(e.target.value)}
+                      placeholder="e.g. elitetraderjunoon@oksbi"
+                      className="w-full bg-[#120a2e]/60 border border-[#3b207e] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Merchant Display Name</label>
+                    <input
+                      type="text"
+                      value={merchantName}
+                      onChange={(e) => setMerchantName(e.target.value)}
+                      placeholder="e.g. Recruit India Corporation"
+                      className="w-full bg-[#120a2e]/60 border border-[#3b207e] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-slate-400 font-bold uppercase block mb-1">Bank / Platform Provider name</label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="e.g. Airtel Payments Bank"
+                      className="w-full bg-[#120a2e]/60 border border-[#3b207e] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      setIsUpdatingUpi(true);
+                      setUpiUpdateSuccess(false);
+                      const adminToken = sessionStorage.getItem('recruit_admin_token') || 'recruit_admin_authorized_token_2026';
+                      try {
+                        const response = await fetch('/api/admin/payment-settings', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                          },
+                          body: JSON.stringify({ upiId, merchantName, bankName })
+                        });
+                        if (response.ok) {
+                          setUpiUpdateSuccess(true);
+                          setTimeout(() => setUpiUpdateSuccess(false), 3000);
+                        } else {
+                          alert('Failed to update merchant configuration.');
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        alert('Network failure connecting to server.');
+                      } finally {
+                        setIsUpdatingUpi(false);
+                      }
+                    }}
+                    disabled={isUpdatingUpi}
+                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 text-white font-black text-xs uppercase py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                  >
+                    {isUpdatingUpi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    <span>{upiUpdateSuccess ? 'Merchant settings configured!' : 'Update Live UPI QR Codes'}</span>
+                  </button>
                 </div>
               </div>
 
