@@ -248,8 +248,14 @@ Recruit.org.in is an AI-powered opportunity ecosystem designed to help Indian yo
 
 Your Personality:
 * Professional, Intelligent, Helpful, Positive, Motivational, Human-like, Career-focused.
-Your Communication Style:
-* Simple language, easy to understand, professional guidance, action-oriented recommendations. Keep answers structured, highly scannable, using markdown headings, bold terms, and bullet points where applicable.
+Your Communication Style & Multilingual Guidelines:
+* Keep answers structured, highly scannable, using markdown headings, bold terms, and bullet points where applicable.
+* Multilingual Support (English, Hindi, Odia):
+  - English (EN): Provide professional, highly structured career guidance.
+  - Hindi (HI / हिंदी): Respond in clear, formal Devanagari script.
+  - Odia (OR / ଓଡ଼ିଆ): Respond in correct native Odia script.
+  - Transliterated / Romanized input (Hinglish or English-sounding Odia): If the user types queries using Latin alphabet but sounding like Hindi (e.g., "mujhe railway job chahiye") or sounding like Odia (e.g., "mote state scheme bisayare kuha" or "mote business karibaku achhi"), you must reply warmly in their exact style. Use easy-to-read transliterated language (sounding language) or high-quality bilingual (e.g., mixing matching English keywords with transliterated Odia/Hindi phrasing) to make it highly natural and approachable!
+  - Never force standard English if the user initiated in Odia, Hindi, or English-sounding regional languages.
 
 You can assist with:
 1. Career Guidance (career counselling, roadmap generation, skill gap analysis, upskilling, education planning, future career predictions).
@@ -262,7 +268,7 @@ Always speak as AROHI. Introduce yourself proudly and offer helpful, positive ad
 
 // 1. Chat with AROHI Endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message, history, file } = req.body;
+  const { message, history, file, language } = req.body;
 
   if (!message && !file) {
     return res.status(400).json({ error: 'Message or File is required' });
@@ -271,7 +277,7 @@ app.post('/api/chat', async (req, res) => {
   const messageText = message || '';
 
   // Log activity
-  logActivity('chat', `User conversed with AROHI AI: "${messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText}"${file ? ` with attached file: ${file.name}` : ''}`);
+  logActivity('chat', `User conversed with AROHI AI [Lang: ${language || 'en'}]: "${messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText}"${file ? ` with attached file: ${file.name}` : ''}`);
 
   try {
     if (aiClient) {
@@ -292,6 +298,16 @@ app.post('/api/chat', async (req, res) => {
         });
       }
 
+      // Build dynamic system instruction based on chosen interface language
+      let dynamicInstruction = AROHI_SYSTEM_INSTRUCTION;
+      if (language === 'hi') {
+        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: HINDI (हिंदी). The user prefers Hindi. If they write in Hindi, Hinglish, or English, respond primarily in Hindi/Devanagari script or natural Hinglish as appropriate to match their query.]`;
+      } else if (language === 'or') {
+        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ODIA (ଓଡ଼ିଆ). The user prefers Odia. If they write in Odia, English-sounding Odia, or English, respond primarily in Odia script or natural English-sounding Odia as appropriate to match their query.]`;
+      } else {
+        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ENGLISH. The user prefers English. Maintain default English unless they type in Hindi/Odia/Hinglish/English-sounding Odia, in which case match their chosen language perfectly.]`;
+      }
+
       // Call Gemini API using modern SDK with fallback strategy
       const response = await generateContentWithFallback(aiClient, {
         contents: [
@@ -299,7 +315,7 @@ app.post('/api/chat', async (req, res) => {
           { role: 'user', parts: userParts }
         ],
         config: {
-          systemInstruction: AROHI_SYSTEM_INSTRUCTION,
+          systemInstruction: dynamicInstruction,
           temperature: 0.7,
         }
       });

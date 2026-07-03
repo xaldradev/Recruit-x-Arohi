@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Sparkles, Plus, RefreshCw, Trash2, Mic, Paperclip, CheckCircle, ArrowRight, Lightbulb, MapPin, Briefcase, Landmark, Award, Minus, X } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, RefreshCw, Trash2, Mic, Paperclip, CheckCircle, ArrowRight, Lightbulb, MapPin, Briefcase, Landmark, Award, Minus, X, Globe } from 'lucide-react';
 import ArohiAvatar from './ArohiAvatar';
+import { Language, getTranslation, getWelcomeContent, getSuggestedPrompts } from '../translations';
 
 interface Message {
   id: string;
@@ -20,6 +21,7 @@ interface ArohiChatProps {
   onNavigateTab?: (tab: string) => void;
   onMinimize?: () => void;
   onClose?: () => void;
+  language?: Language;
 }
 
 function renderMarkdown(content: string) {
@@ -144,25 +146,28 @@ function renderMarkdown(content: string) {
   return <div className="space-y-1">{elements}</div>;
 }
 
-export default function ArohiChat({ initialPrompt, onNavigateTab, onMinimize, onClose }: ArohiChatProps) {
+export default function ArohiChat({ initialPrompt, onNavigateTab, onMinimize, onClose, language = 'en' }: ArohiChatProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `Namaste! I am **AROHI**, your personal AI Opportunity Advisor. 🌟
-
-I am here to guide you across the entire Recruit.org.in platform. Ask me anything about:
-* 💼 **Job Openings & Eligibility** (e.g., SSC, UPSC, Bank, Railways)
-* 📝 **ATS Resume Analysis & Interview prep**
-* 🏛️ **Government Schemes & Subsidies** (Mudra, PMEGP, Startup India)
-* 🚀 **Business Idea Validation & MSME setup**
-* 📖 **Skills & Upskilling Pathways**
-
-What is your dream or career goal today? Let's make it happen together!`,
+      content: getWelcomeContent(language),
       timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
+
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0].id === 'welcome') {
+        return [{
+          ...prev[0],
+          content: getWelcomeContent(language)
+        }];
+      }
+      return prev;
+    });
+  }, [language]);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -242,7 +247,8 @@ What is your dream or career goal today? Let's make it happen together!`,
         body: JSON.stringify({
           message: text,
           history: messages.map(m => ({ role: m.role, content: m.content })),
-          file: fileToSend
+          file: fileToSend,
+          language: language
         })
       });
 
@@ -364,8 +370,13 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
           rec.continuous = true;
           rec.interimResults = true;
           
-          // Set language to Indian English to optimize for regional accents, local schemes, and Hinglish pronunciation
-          rec.lang = 'en-IN';
+          // Set language dynamically to match the user's interface language selection
+          const langMap = {
+            en: 'en-IN',
+            hi: 'hi-IN',
+            or: 'or-IN'
+          };
+          rec.lang = langMap[language] || 'en-IN';
 
           // Inject custom career-related grammars to improve recognition of technical and scheme terms
           const SpeechGrammarList = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
@@ -432,12 +443,7 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
   };
 
   // Quick Action Prompts
-  const suggestedPrompts = [
-    { text: 'Analyze my resume', desc: 'Find missing keywords & ATS score' },
-    { text: 'Suggest government schemes', desc: 'Find Mudra, PMEGP & student loans' },
-    { text: 'Help start my business', desc: 'MSME registration & business idea validation' },
-    { text: 'Prepare for interview', desc: 'Mock standard questions and feedback' }
-  ];
+  const suggestedPrompts = getSuggestedPrompts(language);
 
   if (isMinimized) {
     return (
@@ -626,7 +632,7 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
               </div>
               <div className="bg-[#130f2c] border border-[#2b1f5c] max-w-[70%] rounded-2xl p-4 rounded-tl-none shadow-md text-sm text-slate-100">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-300 font-bold">AROHI is searching opportunities...</span>
+                  <span className="text-xs text-slate-300 font-bold">{getTranslation('loading', language)}</span>
                   <div className="flex gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] animate-bounce delay-100"></span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] animate-bounce delay-200"></span>
@@ -738,7 +744,7 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
                   ? 'bg-rose-600 text-white border-rose-500' 
                   : 'bg-[#181236] hover:bg-[#241a4f] border-[#3e2b85] text-slate-300 hover:text-white'
               }`}
-              title="Speak with AROHI"
+              title={getTranslation('speakWithArohi', language)}
             >
               <Mic className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5" />
             </button>
@@ -746,7 +752,7 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
             {/* Message input */}
             <input
               type="text"
-              placeholder="Ask AROHI anything..."
+              placeholder={getTranslation('typeMessage', language)}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}

@@ -13,15 +13,20 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  Globe,
+  ChevronDown
 } from 'lucide-react';
+import { Language, getTranslation } from '../translations';
 
 interface WelcomeLandingProps {
   onEnter: () => void;
   setActiveTab: (tab: string) => void;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
 }
 
-export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLandingProps) {
+export default function WelcomeLanding({ onEnter, setActiveTab, language, onLanguageChange }: WelcomeLandingProps) {
   // Helper function to handle badge click (teleports user directly inside targeted page)
   const handleBadgeClick = (tabId: string) => {
     setActiveTab(tabId);
@@ -31,7 +36,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
   const categories = [
     {
       id: 'fresher',
-      title: 'Fresher',
+      title: getTranslation('cat_fresher', language),
       icon: GraduationCap,
       color: 'from-blue-600/35 to-blue-500/15',
       glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.55)]',
@@ -44,7 +49,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'school_student',
-      title: 'Class 1-10 Student',
+      title: getTranslation('cat_schoolStudent', language),
       icon: GraduationCap,
       color: 'from-emerald-600/35 to-indigo-500/15',
       glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)]',
@@ -57,7 +62,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'job_seeker',
-      title: 'Job Seeker',
+      title: getTranslation('cat_jobSeeker', language),
       icon: Briefcase,
       color: 'from-purple-600/35 to-purple-500/15',
       glow: 'shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(168,85,247,0.55)]',
@@ -70,7 +75,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'career_changer',
-      title: 'Career Changer',
+      title: getTranslation('cat_careerChanger', language),
       icon: ArrowLeftRight,
       color: 'from-fuchsia-600/35 to-purple-500/15',
       glow: 'shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:shadow-[0_0_25px_rgba(217,70,239,0.55)]',
@@ -83,7 +88,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'remote_worker',
-      title: 'Remote Worker',
+      title: getTranslation('cat_remoteWorker', language),
       icon: Laptop,
       color: 'from-teal-600/35 to-cyan-500/15',
       glow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)] hover:shadow-[0_0_25px_rgba(20,184,166,0.55)]',
@@ -96,7 +101,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'gov_aspirant',
-      title: 'Gov Exam Aspirant',
+      title: getTranslation('cat_govAspirant', language),
       icon: Landmark,
       color: 'from-cyan-600/35 to-blue-500/15',
       glow: 'shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.55)]',
@@ -109,7 +114,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'skilled_pro',
-      title: 'Skilled Pro',
+      title: getTranslation('cat_skilledPro', language),
       icon: Star,
       color: 'from-blue-600/35 to-cyan-500/15',
       glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.55)]',
@@ -122,7 +127,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'freelancer',
-      title: 'Freelancer',
+      title: getTranslation('cat_freelancer', language),
       icon: Briefcase,
       color: 'from-purple-600/35 to-pink-500/15',
       glow: 'shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(168,85,247,0.55)]',
@@ -135,7 +140,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'entrepreneur',
-      title: 'Entrepreneur',
+      title: getTranslation('cat_entrepreneur', language),
       icon: Lightbulb,
       color: 'from-blue-600/35 to-teal-500/15',
       glow: 'shadow-[0_0_15px_rgba(14,165,233,0.3)] hover:shadow-[0_0_25px_rgba(14,165,233,0.55)]',
@@ -148,7 +153,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
     },
     {
       id: 'intern',
-      title: 'Intern',
+      title: getTranslation('cat_intern', language),
       icon: User,
       color: 'from-blue-600/35 to-indigo-500/15',
       glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.55)]',
@@ -177,6 +182,50 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
   return (
     <div className="relative w-full h-screen min-h-[580px] sm:min-h-[640px] bg-[#020208] text-white flex flex-col justify-between overflow-hidden font-sans select-none">
       
+      {/* Top Floating Language Dropdown Selector */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center gap-2">
+        <div className="relative group/lang">
+          <button className="flex items-center gap-2 px-3.5 py-2 bg-[#120d2b]/60 hover:bg-[#1b143f]/80 border border-[#3e2b85]/50 rounded-full text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer">
+            <Globe className="w-3.5 h-3.5 text-purple-400 animate-spin" style={{ animationDuration: '15s' }} />
+            <span>{language === 'en' ? 'English' : language === 'hi' ? 'हिंदी (Hindi)' : 'ଓଡ଼ିଆ (Odia)'}</span>
+            <ChevronDown className="w-3 h-3 text-slate-400 group-hover/lang:rotate-180 transition-transform duration-300" />
+          </button>
+          
+          <div className="absolute right-0 mt-2 w-40 bg-[#0c091d]/95 border border-[#2b1f5c]/70 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-lg transition-all duration-200 opacity-0 scale-95 pointer-events-none group-hover/lang:opacity-100 group-hover/lang:scale-100 group-hover/lang:pointer-events-auto z-[60]">
+            <div className="px-3 py-2 border-b border-[#2b1f5c]/30 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+              {getTranslation('selectLang', language)}
+            </div>
+            <button
+              onClick={() => onLanguageChange('en')}
+              className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                language === 'en' ? 'bg-[#7c3aed]/20 text-purple-200 font-bold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span>English</span>
+              {language === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+            </button>
+            <button
+              onClick={() => onLanguageChange('hi')}
+              className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                language === 'hi' ? 'bg-[#7c3aed]/20 text-purple-200 font-bold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span>हिंदी (Hindi)</span>
+              {language === 'hi' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+            </button>
+            <button
+              onClick={() => onLanguageChange('or')}
+              className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                language === 'or' ? 'bg-[#7c3aed]/20 text-purple-200 font-bold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span>ଓଡ଼ିଆ (Odia)</span>
+              {language === 'or' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Deep space backdrop with floating pink/blue light streaks and bokeh */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Neon Light Streaks */}
@@ -280,7 +329,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
               transition={{ duration: 0.6, delay: 0.35, ease: "easeOut" }}
               className="text-[8px] sm:text-xs font-bold tracking-[0.35em] text-slate-400 uppercase block"
             >
-              W E L C O M E &nbsp; T O
+              {getTranslation('welcomeTo', language)}
             </motion.span>
             
             <motion.h1 
@@ -298,7 +347,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
               transition={{ duration: 0.6, delay: 0.55, ease: "easeOut" }}
               className="text-[8px] sm:text-[11px] font-black tracking-[0.25em] text-slate-400 uppercase block pt-0.5"
             >
-              Dream &bull; Prepare &bull; Achieve
+              {getTranslation('dreamPrepare', language)}
             </motion.span>
           </div>
 
@@ -308,9 +357,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
             transition={{ duration: 0.6, delay: 0.65, ease: "easeOut" }}
             className="text-[11px] sm:text-sm text-slate-200 leading-relaxed font-medium max-w-xs sm:max-w-md mx-auto"
           >
-            Your AI-powered career partner.<br />
-            Find jobs, learn skills, get hired —<br />
-            all in one intelligent platform.
+            {getTranslation('landingDesc', language)}
           </motion.p>
 
           {/* 3D Circular Pedestal Stage */}
@@ -346,7 +393,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
               whileTap={{ scale: 0.95 }}
               className="px-8 py-3 sm:px-10 sm:py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm uppercase tracking-widest rounded-full shadow-[0_8px_25px_rgba(59,130,246,0.35)] hover:shadow-[0_12px_35px_rgba(59,130,246,0.5)] border border-blue-400/20 transition-all cursor-pointer flex items-center gap-2"
             >
-              <span>Enter The Journey</span>
+              <span>{getTranslation('enterBtn', language)}</span>
               <ArrowRight className="w-3.5 h-3.5 animate-bounce" style={{ animationDuration: '2.5s' }} />
             </motion.button>
           </motion.div>
@@ -357,7 +404,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
             transition={{ duration: 0.5, delay: 1.0 }}
             className="text-[10px] text-slate-400 font-semibold italic"
           >
-            Let's build your future, together.
+            {getTranslation('buildFuture', language)}
           </motion.p>
         </div>
 
@@ -380,10 +427,10 @@ export default function WelcomeLanding({ onEnter, setActiveTab }: WelcomeLanding
             </span>
             <div className="text-left">
               <span className="text-[8px] sm:text-[10px] uppercase font-black tracking-widest text-emerald-400 block">
-                AROHI AI Active
+                {getTranslation('arohiActive', language)}
               </span>
               <span className="text-[10px] sm:text-xs font-semibold text-slate-200 line-clamp-1">
-                "Hi! I'm Arohi 🤖 Your AI Career Assistant."
+                {getTranslation('arohiGreeting', language)}
               </span>
             </div>
           </div>

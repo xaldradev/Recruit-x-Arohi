@@ -6,6 +6,7 @@ import PostingDetail from './components/PostingDetail';
 import AdminPanel from './components/AdminPanel';
 import { useAuth } from './context/AuthContext';
 import AuthModal from './components/AuthModal';
+import { Language, getTranslation } from './translations';
 
 
 // Core Tab Components
@@ -151,6 +152,15 @@ export default function App() {
   const { user, userData, updateApplications } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [hasEntered, setHasEntered] = useState(false);
+
+  const [language, setLanguage] = useState<Language>(() => {
+    return (localStorage.getItem('recruit_language') as Language) || 'en';
+  });
+
+  const changeLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('recruit_language', lang);
+  };
 
   const [userName, setUserName] = useState(() => {
     return localStorage.getItem('recruit_user_name') || 'Honored Guest';
@@ -2350,6 +2360,8 @@ export default function App() {
   if (!hasEntered) {
     return (
       <WelcomeLanding 
+        language={language}
+        onLanguageChange={changeLanguage}
         onEnter={() => {
           localStorage.setItem('recruit_has_entered', 'true');
           setHasEntered(true);
@@ -2376,6 +2388,8 @@ export default function App() {
           localStorage.removeItem('recruit_has_entered');
           setHasEntered(false);
         }}
+        language={language}
+        onLanguageChange={changeLanguage}
       />
 
       {/* Security Auth Modal overlay */}
@@ -2619,6 +2633,7 @@ export default function App() {
       {isChatOpen && !isChatMinimized && (
         <div className="fixed bottom-0 right-0 sm:bottom-24 sm:right-6 w-full sm:w-[480px] md:w-[820px] lg:w-[1120px] h-[100dvh] sm:h-[600px] md:h-[700px] lg:h-[760px] max-h-[100dvh] sm:max-h-[80vh] md:max-h-[85vh] lg:max-h-[90vh] z-50 bg-[#090714] sm:rounded-3xl shadow-[0_12px_40px_rgba(124,58,237,0.3)] border-t sm:border border-[#a78bfa]/30 overflow-hidden flex flex-col animate-in slide-in-from-bottom-5 duration-300">
           <ArohiChat 
+            language={language}
             onNavigateTab={(tab) => {
               setActiveTab(tab);
               setIsChatOpen(false);

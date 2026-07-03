@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Bot, Sparkles, Award, Menu, X, Landmark, Briefcase, Settings, User, BookOpen, FileText, ChevronDown, LogOut, LogIn, ShieldCheck } from 'lucide-react';
+import { Bot, Sparkles, Award, Menu, X, Landmark, Briefcase, Settings, User, BookOpen, FileText, ChevronDown, LogOut, LogIn, ShieldCheck, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
+import { Language, getTranslation } from '../translations';
 
 interface HeaderProps {
   activeTab: string;
@@ -10,9 +11,11 @@ interface HeaderProps {
   searchQuery?: string;
   onOpenAuth: () => void;
   onRevisitWelcome?: () => void;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
 }
 
-export default function Header({ activeTab, onTabChange, onSearchChange, searchQuery, onOpenAuth, onRevisitWelcome }: HeaderProps) {
+export default function Header({ activeTab, onTabChange, onSearchChange, searchQuery, onOpenAuth, onRevisitWelcome, language, onLanguageChange }: HeaderProps) {
   const { user, userData, signOutUser } = useAuth();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,12 +49,12 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
   const padZero = (num: number) => num.toString().padStart(2, '0');
 
   const navLinks = [
-    { id: 'home', label: 'Home', hasDropdown: false },
-    { id: 'jobs', label: 'Jobs', hasDropdown: true },
-    { id: 'courses', label: 'Skills', hasDropdown: true },
-    { id: 'syllabus', label: 'Syllabus 1-10', hasBadge: true, badgeText: 'Odia/CBSE' },
-    { id: 'business', label: 'Business', hasBadge: true, badgeText: 'New' },
-    { id: 'arohi', label: user ? 'Dashboard' : 'Join Now', hasDropdown: false },
+    { id: 'home', label: getTranslation('home', language), hasDropdown: false },
+    { id: 'jobs', label: getTranslation('jobs', language), hasDropdown: true },
+    { id: 'courses', label: getTranslation('skills', language), hasDropdown: true },
+    { id: 'syllabus', label: getTranslation('syllabus', language), hasBadge: true, badgeText: 'Odia/CBSE' },
+    { id: 'business', label: getTranslation('business', language), hasBadge: true, badgeText: 'New' },
+    { id: 'arohi', label: getTranslation('arohiChat', language), hasDropdown: false },
     { id: 'privacy', label: 'Privacy', hasDropdown: false },
     { id: 'terms', label: 'Terms', hasDropdown: false },
     { id: 'refunds', label: 'Refund', hasDropdown: false },
@@ -70,15 +73,15 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <span className="tracking-wide text-[10px] sm:text-xs font-semibold text-slate-200">
-            Official National Career Registry Network Active
+            {getTranslation('registryActive', language)}
           </span>
           <span className="text-[#3b3261] hidden sm:inline">•</span>
           <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0 inline" /> Verified Portal Integration
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0 inline" /> {getTranslation('portalVerification', language)}
           </span>
           <span className="text-[#3b3261] hidden md:inline">•</span>
           <span className="text-[10px] sm:text-xs text-slate-400 hidden md:inline">
-            Over 24,500+ Live Government & Corporate Vacancies Synchronized
+            {getTranslation('liveVacancies', language)}
           </span>
         </div>
       </div>
@@ -102,7 +105,7 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
               Recruit
             </h1>
             <span className="text-[9px] sm:text-xs text-slate-400 font-semibold tracking-normal mt-0.5 leading-tight max-w-[180px] sm:max-w-none">
-              Empowering India’s Students, Professionals, and MSMEs
+              {getTranslation('slogan', language)}
             </span>
           </div>
         </div>
@@ -132,6 +135,22 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
 
         {/* Right Side: CTA and Mobile toggle */}
         <div className="flex items-center gap-2.5">
+
+          {/* Sleek Globe Language Selector */}
+          <div className="relative flex items-center gap-1.5 px-3 py-1.5 bg-[#17113a]/80 border border-[#3b289c]/60 rounded-xl hover:bg-[#251b5c]/80 hover:border-purple-500/50 transition-all shadow-sm">
+            <Globe className="w-3.5 h-3.5 text-purple-400" />
+            <select
+              value={language}
+              onChange={(e) => onLanguageChange(e.target.value as Language)}
+              className="bg-transparent text-slate-200 hover:text-white text-xs font-bold focus:outline-none cursor-pointer pr-1 border-none appearance-none font-sans"
+              title="Change Language / ଭାଷା ବଦଳାନ୍ତୁ"
+            >
+              <option value="en" className="bg-[#110d2d] text-slate-200 font-sans font-bold">English</option>
+              <option value="hi" className="bg-[#110d2d] text-slate-200 font-sans font-bold">हिंदी</option>
+              <option value="or" className="bg-[#110d2d] text-slate-200 font-sans font-bold">ଓଡ଼ିଆ</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 pointer-events-none shrink-0" />
+          </div>
 
           {onRevisitWelcome && (
             <button
@@ -355,6 +374,29 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
                   className="pt-4 border-t border-purple-950/40 relative z-10 mt-auto"
                   style={{ transform: 'translateZ(40px)' }}
                 >
+                  {/* Mobile Language Selector */}
+                  <div className="mb-4 flex items-center justify-between px-3 py-2 bg-[#120a28]/60 border border-purple-950/40 rounded-2xl">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-purple-400" />
+                      <span className="text-xs text-slate-300 font-bold">{getTranslation('selectLang', language)}:</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {(['en', 'hi', 'or'] as const).map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => onLanguageChange(lang)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${
+                            language === lang
+                              ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white border border-purple-400/45 shadow-md'
+                              : 'bg-purple-950/35 hover:bg-purple-900/30 text-slate-300 border border-purple-950/40'
+                          }`}
+                        >
+                          {lang === 'en' ? 'EN' : lang === 'hi' ? 'हिंदी' : 'ଓଡ଼ିଆ'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {onRevisitWelcome && (
                     <motion.button
                       whileHover={{ scale: 1.02, backgroundColor: 'rgba(124, 58, 237, 0.15)', borderColor: 'rgba(124, 58, 237, 0.4)' }}
