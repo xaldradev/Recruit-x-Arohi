@@ -168,6 +168,7 @@ What is your dream or career goal today? Let's make it happen together!`,
   const [isLoading, setIsLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; mimeType: string; base64: string } | null>(null);
 
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
     { id: '1', title: 'Full Stack Career Roadmap', date: 'Today' },
@@ -178,11 +179,29 @@ What is your dream or career goal today? Let's make it happen together!`,
   const [activeHistoryId, setActiveHistoryId] = useState('1');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const simulationIntervalRef = useRef<any>(null);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  // Cleanup speech recognition and simulation on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Handle passed initial prompts
   useEffect(() => {
@@ -208,7 +227,10 @@ What is your dream or career goal today? Let's make it happen together!`,
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    
+    const fileToSend = uploadedFile;
     setUploadedFileName(null);
+    setUploadedFile(null);
     setIsLoading(true);
 
     try {
@@ -219,7 +241,8 @@ What is your dream or career goal today? Let's make it happen together!`,
         },
         body: JSON.stringify({
           message: text,
-          history: messages.map(m => ({ role: m.role, content: m.content }))
+          history: messages.map(m => ({ role: m.role, content: m.content })),
+          file: fileToSend
         })
       });
 
@@ -285,18 +308,126 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setUploadedFileName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const resultString = reader.result as string;
+        const base64String = resultString.split(',')[1] || '';
+        setUploadedFile({
+          name: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          base64: base64String
+        });
+        setUploadedFileName(file.name);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const toggleRecording = () => {
-    setRecording(!recording);
-    if (!recording) {
-      // Simulate speaking feedback
-      setTimeout(() => {
+  const startSimulation = () => {
+    setRecording(true);
+    setInput('');
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+    }
+    const fullText = 'Show me government schemes for women entrepreneurs in India.';
+    let currentIdx = 0;
+    simulationIntervalRef.current = setInterval(() => {
+      currentIdx++;
+      setInput(fullText.slice(0, currentIdx));
+      if (currentIdx >= fullText.length) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
         setRecording(false);
-        setInput('Show me government schemes for women entrepreneurs in India.');
-      }, 3500);
+      }
+    }, 45);
+  };
+
+  const toggleRecording = () => {
+    if (recording) {
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      setRecording(false);
+    } else {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const rec = new SpeechRecognition();
+          rec.continuous = true;
+          rec.interimResults = true;
+          
+          // Set language to Indian English to optimize for regional accents, local schemes, and Hinglish pronunciation
+          rec.lang = 'en-IN';
+
+          // Inject custom career-related grammars to improve recognition of technical and scheme terms
+          const SpeechGrammarList = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+          if (SpeechGrammarList) {
+            try {
+              const speechRecognitionList = new SpeechGrammarList();
+              const terms = [
+                'Mudra', 'PMEGP', 'CGTMSE', 'Sarkari', 'Arohi', 'MSME', 'validation',
+                'entrepreneur', 'resume', 'skills', 'government schemes', 'startup', 'interview',
+                'micro-business', 'career guide', 'Sarkari Jobs', 'Mudra Loans', 'Resume Guide', 'Mock Interview'
+              ];
+              const grammar = `#JSGF V1.0; grammar careerKeywords; public <keyword> = ${terms.join(' | ')} ;`;
+              speechRecognitionList.addFromString(grammar, 1.0);
+              rec.grammars = speechRecognitionList;
+            } catch (grammarError) {
+              console.warn('SpeechGrammarList registration ignored:', grammarError);
+            }
+          }
+
+          rec.onstart = () => {
+            setRecording(true);
+          };
+
+          rec.onresult = (event: any) => {
+            let fullTranscript = '';
+            for (let i = 0; i < event.results.length; ++i) {
+              fullTranscript += event.results[i][0].transcript;
+            }
+            const cleanText = fullTranscript.trim();
+            if (cleanText) {
+              setInput(cleanText);
+            }
+          };
+
+          rec.onerror = (event: any) => {
+            console.error('Speech recognition error:', event.error);
+            if (event.error === 'not-allowed' || event.error === 'audio-capture' || event.error === 'service-not-allowed') {
+              try {
+                rec.abort();
+              } catch (err) {}
+              startSimulation();
+            } else if (event.error !== 'no-speech') {
+              setRecording(false);
+            }
+          };
+
+          rec.onend = () => {
+            if (!simulationIntervalRef.current) {
+              setRecording(false);
+            }
+          };
+
+          recognitionRef.current = rec;
+          rec.start();
+        } catch (e) {
+          console.error('Speech recognition start failed, using fallback:', e);
+          startSimulation();
+        }
+      } else {
+        // Fallback simulation if browser doesn't support Web Speech API
+        startSimulation();
+      }
     }
   };
 
@@ -403,30 +534,30 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
       <div className="flex-1 flex flex-col min-w-0 bg-[#090714]">
         
         {/* Chat Title bar */}
-        <div className="bg-[#120d26] border-b border-[#2d2163] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl shadow-sm border border-[#3b2a80] overflow-hidden relative shrink-0">
+        <div className="bg-[#120d26] border-b border-[#2d2163] px-3 sm:px-6 py-2.5 sm:py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl shadow-sm border border-[#3b2a80] overflow-hidden relative shrink-0">
               <ArohiAvatar className="w-full h-full" />
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00e676] rounded-full border-2 border-[#120d26] animate-pulse"></span>
+              <span className="absolute bottom-0 right-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[#00e676] rounded-full border border-[#120d26] animate-pulse"></span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-white text-sm md:text-base leading-none">AROHI AI</h3>
-                <span className="bg-[#7c3aed]/20 text-[#c084fc] border border-[#7c3aed]/30 text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase whitespace-nowrap">Your Career guide</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h3 className="font-extrabold text-white text-xs sm:text-sm md:text-base leading-none shrink-0">AROHI AI</h3>
+                <span className="bg-[#7c3aed]/20 text-[#c084fc] border border-[#7c3aed]/30 text-[8px] xs:text-[10px] font-extrabold px-1.5 py-0.5 rounded-md uppercase whitespace-nowrap hidden xs:inline-block">Your Career guide</span>
               </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">India's Unified Career & Business AI Guide</p>
+              <p className="text-[10px] sm:text-xs text-slate-300 font-medium mt-0.5 truncate max-w-[150px] sm:max-w-none">India's Unified Career & Business AI Guide</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <button
               onClick={() => {
                 setMessages((prev) => [prev[0]]);
               }}
               title="Clear Chat"
-              className="p-2 rounded-lg hover:bg-[#1f1545] text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg hover:bg-[#1f1545] text-slate-300 hover:text-white transition-colors cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
             <button
               onClick={() => {
@@ -437,17 +568,17 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
                 }
               }}
               title="Minimize Chat"
-              className="p-2 rounded-lg hover:bg-[#1f1545] text-slate-300 hover:text-indigo-400 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg hover:bg-[#1f1545] text-slate-300 hover:text-indigo-400 transition-colors cursor-pointer"
             >
-              <Minus className="w-4.5 h-4.5" />
+              <Minus className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
             </button>
             {onClose && (
               <button
                 onClick={onClose}
                 title="Close Chat"
-                className="p-2 rounded-lg hover:bg-[#1f1545] text-slate-300 hover:text-rose-400 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-[#1f1545] text-slate-300 hover:text-rose-400 transition-colors cursor-pointer"
               >
-                <X className="w-4.5 h-4.5" />
+                <X className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
               </button>
             )}
           </div>
@@ -587,10 +718,10 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
             </div>
           )}
 
-          <div className="flex gap-1.5 sm:gap-2.5 items-center">
+          <div className="flex gap-1 xs:gap-1.5 sm:gap-2.5 items-center">
             {/* Attachment icon */}
-            <label className="p-2.5 sm:p-3 bg-[#181236] hover:bg-[#241a4f] rounded-xl border border-[#3e2b85] text-slate-300 hover:text-white cursor-pointer shadow-sm transition-colors shrink-0">
-              <Paperclip className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            <label className="p-2 xs:p-2.5 sm:p-3 bg-[#181236] hover:bg-[#241a4f] rounded-xl border border-[#3e2b85] text-slate-300 hover:text-white cursor-pointer shadow-sm transition-colors shrink-0">
+              <Paperclip className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5" />
               <input 
                 type="file" 
                 accept=".pdf,.docx,.txt,image/*" 
@@ -602,14 +733,14 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
             {/* Voice input */}
             <button
               onClick={toggleRecording}
-              className={`p-2.5 sm:p-3 rounded-xl border shadow-sm transition-colors shrink-0 cursor-pointer ${
+              className={`p-2 xs:p-2.5 sm:p-3 rounded-xl border shadow-sm transition-colors shrink-0 cursor-pointer ${
                 recording 
                   ? 'bg-rose-600 text-white border-rose-500' 
                   : 'bg-[#181236] hover:bg-[#241a4f] border-[#3e2b85] text-slate-300 hover:text-white'
               }`}
               title="Speak with AROHI"
             >
-              <Mic className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <Mic className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             {/* Message input */}
@@ -619,16 +750,16 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              className="flex-1 min-w-0 bg-[#181236] border border-[#3e2b85] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed] text-white placeholder-slate-400 shadow-sm font-medium"
+              className="flex-1 min-w-0 bg-[#181236] border border-[#3e2b85] rounded-xl px-2.5 xs:px-3 sm:px-4 py-2 xs:py-2.5 sm:py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed] text-white placeholder-slate-400 shadow-sm font-medium"
             />
 
             {/* Send button */}
             <button
               onClick={() => handleSendMessage()}
               disabled={(!input.trim() && !uploadedFileName) || isLoading}
-              className="p-2.5 sm:p-3 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:bg-[#1a1532] disabled:text-slate-500 text-white rounded-xl shadow-md cursor-pointer disabled:cursor-not-allowed transition-all shrink-0 flex items-center justify-center"
+              className="p-2 xs:p-2.5 sm:p-3 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:bg-[#1a1532] disabled:text-slate-500 text-white rounded-xl shadow-md cursor-pointer disabled:cursor-not-allowed transition-all shrink-0 flex items-center justify-center"
             >
-              <Send className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <Send className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5" />
             </button>
           </div>
           <div className="mt-2 text-center text-[10px] text-slate-400 font-medium">

@@ -2642,29 +2642,31 @@ export default function App() {
 
 
       {/* Floating assistant bubble in bottom right corner */}
-      <button
-        onClick={() => {
-          if (isChatOpen) {
-            // Toggle closed or restore if minimized
-            if (isChatMinimized) {
-              setIsChatMinimized(false);
+      {(!isChatOpen || isChatMinimized) && (
+        <button
+          onClick={() => {
+            if (isChatOpen) {
+              // Toggle closed or restore if minimized
+              if (isChatMinimized) {
+                setIsChatMinimized(false);
+              } else {
+                setIsChatOpen(false);
+              }
             } else {
-              setIsChatOpen(false);
+              setIsChatOpen(true);
+              setIsChatMinimized(false);
             }
-          } else {
-            setIsChatOpen(true);
-            setIsChatMinimized(false);
-          }
-        }}
-        className="fixed bottom-6 right-6 bg-[#7c3aed] hover:bg-[#6d28d9] active:scale-95 text-white p-3 sm:p-3.5 rounded-full shadow-[0_4px_20px_rgba(124,58,237,0.45)] border border-[#a78bfa]/40 z-50 flex items-center justify-center gap-2 group transition-all duration-300"
-        title="Talk to AROHI"
-      >
-        <span className="text-2xl select-none">👩</span>
-        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-out text-xs font-black uppercase tracking-wider whitespace-nowrap">
-          {isChatOpen && !isChatMinimized ? 'Close AROHI' : 'Ask AROHI'}
-        </span>
-        <span className="absolute top-0 right-0 w-3 h-3 bg-[#00e676] rounded-full border-2 border-[#090714] animate-pulse"></span>
-      </button>
+          }}
+          className="fixed bottom-6 right-6 bg-[#7c3aed] hover:bg-[#6d28d9] active:scale-95 text-white p-3 sm:p-3.5 rounded-full shadow-[0_4px_20px_rgba(124,58,237,0.45)] border border-[#a78bfa]/40 z-50 flex items-center justify-center gap-2 group transition-all duration-300"
+          title="Talk to AROHI"
+        >
+          <span className="text-2xl select-none">👩</span>
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-out text-xs font-black uppercase tracking-wider whitespace-nowrap">
+            {isChatOpen && !isChatMinimized ? 'Close AROHI' : 'Ask AROHI'}
+          </span>
+          <span className="absolute top-0 right-0 w-3 h-3 bg-[#00e676] rounded-full border-2 border-[#090714] animate-pulse"></span>
+        </button>
+      )}
 
       {/* Simulated Premium Checkout Modal */}
       {checkoutPath && (
@@ -2923,12 +2925,14 @@ export default function App() {
       )}
 
       {/* Floating Bottom-Left Navigation Hub */}
-      <NavigationHub
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        prevTab={prevTab}
-        setSelectedPosting={setSelectedPosting}
-      />
+      {(!isChatOpen || isChatMinimized) && (
+        <NavigationHub
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          prevTab={prevTab}
+          setSelectedPosting={setSelectedPosting}
+        />
+      )}
 
     </div>
   );

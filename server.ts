@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 const PORT = 3000;
 
@@ -112,6 +113,22 @@ app.all('/__/auth/*', async (req, res) => {
     
     // Override headers to avoid CORS/SSL/Origin mismatches with Google & Firebase
     delete headers['host'];
+    delete headers['content-length'];
+    delete headers['connection'];
+
+    // Strip out all x-forwarded-* and platform/proxy headers to prevent Firebase Hosting routing confusion
+    Object.keys(headers).forEach(key => {
+      const lowerKey = key.toLowerCase();
+      if (
+        lowerKey.startsWith('x-forwarded-') ||
+        lowerKey === 'x-real-ip' ||
+        lowerKey.startsWith('cf-') ||
+        lowerKey.startsWith('x-railway-')
+      ) {
+        delete headers[key];
+      }
+    });
+
     if (headers['origin']) {
       headers['origin'] = 'https://psychic-tide-htj8l.firebaseapp.com';
     }
@@ -245,14 +262,16 @@ Always speak as AROHI. Introduce yourself proudly and offer helpful, positive ad
 
 // 1. Chat with AROHI Endpoint
 app.post('/api/chat', async (req, res) => {
-  const { message, history } = req.body;
+  const { message, history, file } = req.body;
 
-  if (!message) {
-    return res.status(400).json({ error: 'Message is required' });
+  if (!message && !file) {
+    return res.status(400).json({ error: 'Message or File is required' });
   }
 
+  const messageText = message || '';
+
   // Log activity
-  logActivity('chat', `User conversed with AROHI AI: "${message.length > 50 ? message.substring(0, 50) + '...' : message}"`);
+  logActivity('chat', `User conversed with AROHI AI: "${messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText}"${file ? ` with attached file: ${file.name}` : ''}`);
 
   try {
     if (aiClient) {
@@ -262,11 +281,22 @@ app.post('/api/chat', async (req, res) => {
         parts: [{ text: h.content }]
       }));
 
+      // Build modern multimodal parts payload
+      const userParts: any[] = [{ text: messageText || "Please analyze this file." }];
+      if (file && file.base64 && file.mimeType) {
+        userParts.push({
+          inlineData: {
+            data: file.base64,
+            mimeType: file.mimeType
+          }
+        });
+      }
+
       // Call Gemini API using modern SDK with fallback strategy
       const response = await generateContentWithFallback(aiClient, {
         contents: [
           ...formattedHistory,
-          { role: 'user', parts: [{ text: message }] }
+          { role: 'user', parts: userParts }
         ],
         config: {
           systemInstruction: AROHI_SYSTEM_INSTRUCTION,
@@ -278,14 +308,14 @@ app.post('/api/chat', async (req, res) => {
     } else {
       // Fallback response generator if API key is not present
       return res.json({
-        response: getArohiFallbackResponse(message),
+        response: getArohiFallbackResponse(messageText, file ? file.name : undefined),
         fallback: true
       });
     }
   } catch (error: any) {
     console.error('Error in /api/chat:', error);
     return res.json({
-      response: `[AROHI AI Server Note: Encountered an API error. Here is a simulated response to help you build:]\n\n${getArohiFallbackResponse(message)}`,
+      response: `[AROHI AI Server Note: Encountered an API error. Here is a simulated response to help you build:]\n\n${getArohiFallbackResponse(messageText, file ? file.name : undefined)}`,
       error: error.message
     });
   }
@@ -810,104 +840,110 @@ function getFallbackAdditionalPostings(sector?: string, location?: string, jobTy
 }
 
 // Helper function to return fallback response from AROHI
-function getArohiFallbackResponse(userPrompt: string): string {
+function getArohiFallbackResponse(userPrompt: string, fileName?: string): string {
   const p = userPrompt.toLowerCase();
+  let fileIntro = '';
+  
+  if (fileName) {
+    const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
+    fileIntro = `### 📎 Document Uploaded: \`${fileName}\`\n\nI have successfully received your document attachment! Since the server is currently running in fallback/demo mode without an active live key, I cannot perform a full multi-page parsing. However, as **AROHI**, I can confirm that this **.${fileExt.toUpperCase()}** file has been safely registered for career/MSME analysis. \n\n*If you enter a valid API key in Settings > Secrets, I will utilize state-of-the-art visual and linguistic models to extract specific content from your files!* \n\n---\n\n`;
+  }
 
   if (p.includes('job') || p.includes('vacancy') || p.includes('work') || p.includes('career')) {
-    return `### 🌟 AROHI Career & Job Advisory Note
-
-Welcome! As your AI Opportunity Advisor, I'm excited to help you map out your job discovery strategy. India's digital economy is expanding rapidly, opening thousands of entry points for young professionals.
-
-Here is my recommended plan for your career search:
-1. **Target Growth Domains:** Major hirings are happening across tech platforms, logistics, banking, and backend service agencies.
-2. **Review Active Openings:** On our **Jobs Board**, check out:
-   - *SSC MTS & Havaldar Forms 2026* (Matric Level entry - excellent government stability).
-   - *Railway Assistant Loco Pilot Recruitment* (For technical/ITI backgrounds).
-   - *IBPS Clerk CRP XVI* (Top choice for banking careers).
-3. **Action Items:**
-   - Go to our **Resume AI** page to evaluate your resume ATS score instantly.
-   - Head to **Mock Interview AI** to practice speaking and answering questions.
-
-*Would you like me to guide you through a specific industry or review a technical skill?*`;
+    return fileIntro + `### 🌟 AROHI Career & Job Advisory Note
+ 
+ Welcome! As your AI Opportunity Advisor, I'm excited to help you map out your job discovery strategy. India's digital economy is expanding rapidly, opening thousands of entry points for young professionals.
+ 
+ Here is my recommended plan for your career search:
+ 1. **Target Growth Domains:** Major hirings are happening across tech platforms, logistics, banking, and backend service agencies.
+ 2. **Review Active Openings:** On our **Jobs Board**, check out:
+    - *SSC MTS & Havaldar Forms 2026* (Matric Level entry - excellent government stability).
+    - *Railway Assistant Loco Pilot Recruitment* (For technical/ITI backgrounds).
+    - *IBPS Clerk CRP XVI* (Top choice for banking careers).
+ 3. **Action Items:**
+    - Go to our **Resume AI** page to evaluate your resume ATS score instantly.
+    - Head to **Mock Interview AI** to practice speaking and answering questions.
+ 
+ *Would you like me to guide you through a specific industry or review a technical skill?*`;
   }
-
+ 
   if (p.includes('scheme') || p.includes('government') || p.includes('sarkari') || p.includes('yojana') || p.includes('scholarship')) {
-    return `### 🏛️ Government Schemes & Support Advisor (AROHI AI)
-
-Namaste! I can guide you through India's major Central and State opportunities designed to support students, farmers, women, and MSME business owners:
-
-**1. PM Prime Minister's Employment Generation Programme (PMEGP)**
-- **Purpose:** Credit-linked subsidy program for starting new micro-enterprises.
-- **Subsidy:** Up to 35% in rural areas and 25% in urban areas.
-
-**2. Startup India Seed Fund Scheme (SISFS)**
-- **Purpose:** Financial assistance to startups for proof of concept, prototype development, product trials, and market entry.
-
-**3. Mudra Yojana (PMMY)**
-- **Purpose:** Collateral-free loans up to ₹10 Lakhs under Shishu, Kishor, and Tarun categories for non-corporate small business sectors.
-
-**4. Post Matric Scholarships & Women Schemes**
-- Special tuition wavers and monthly stipends for underrepresented student communities.
-
-*Would you like to analyze your eligibility for any of these schemes? Please share your background (Education, age, and state).*`;
+    return fileIntro + `### 🏛️ Government Schemes & Support Advisor (AROHI AI)
+ 
+ Namaste! I can guide you through India's major Central and State opportunities designed to support students, farmers, women, and MSME business owners:
+ 
+ **1. PM Prime Minister's Employment Generation Programme (PMEGP)**
+ - **Purpose:** Credit-linked subsidy program for starting new micro-enterprises.
+ - **Subsidy:** Up to 35% in rural areas and 25% in urban areas.
+ 
+ **2. Startup India Seed Fund Scheme (SISFS)**
+ - **Purpose:** Financial assistance to startups for proof of concept, prototype development, product trials, and market entry.
+ 
+ **3. Mudra Yojana (PMMY)**
+ - **Purpose:** Collateral-free loans up to ₹10 Lakhs under Shishu, Kishor, and Tarun categories for non-corporate small business sectors.
+ 
+ **4. Post Matric Scholarships & Women Schemes**
+ - Special tuition wavers and monthly stipends for underrepresented student communities.
+ 
+ *Would you like to analyze your eligibility for any of these schemes? Please share your background (Education, age, and state).*`;
   }
-
+ 
   if (p.includes('business') || p.includes('startup') || p.includes('funding') || p.includes('entrepreneur') || p.includes('msme')) {
-    return `### 🚀 Business & MSME Launch Strategy by AROHI AI
-
-Starting a business is a powerful way to generate employment and create scalable assets in India! Let's examine your idea's validation framework:
-
-**Step 1: Focus on MSME Classification**
-Register your venture on the **Udyam Portal** immediately. This qualifies you for:
-- Low-interest collateral-free loans.
-- Subsidies on patent filings and trademark registrations.
-- Exemption from security deposits in government tenders.
-
-**Step 2: Recommended Funding Channels**
-- *Mudra Loans* (under Shishu category for up to ₹50,000 with minimal paperwork).
-- *CGTMSE Credit Guarantee Fund* (for capital loans up to ₹2 Crores without collateral).
-
-**Step 3: Roadmap to Launch**
-1. Document your business plan (value proposition, market size, operations).
-2. Create a basic MVP (Minimal Viable Product) to validate locally.
-3. Apply for local state grants or incubator acceleration pools.
-
-*Tell me more about your startup idea! What sector are you targeting (e.g., Foodtech, Agritech, Handlooms, Retail, Software)?*`;
+    return fileIntro + `### 🚀 Business & MSME Launch Strategy by AROHI AI
+ 
+ Starting a business is a powerful way to generate employment and create scalable assets in India! Let's examine your idea's validation framework:
+ 
+ **Step 1: Focus on MSME Classification**
+ Register your venture on the **Udyam Portal** immediately. This qualifies you for:
+ - Low-interest collateral-free loans.
+ - Subsidies on patent filings and trademark registrations.
+ - Exemption from security deposits in government tenders.
+ 
+ **Step 2: Recommended Funding Channels**
+ - *Mudra Loans* (under Shishu category for up to ₹50,000 with minimal paperwork).
+ - *CGTMSE Credit Guarantee Fund* (for capital loans up to ₹2 Crores without collateral).
+ 
+ **Step 3: Roadmap to Launch**
+ 1. Document your business plan (value proposition, market size, operations).
+ 2. Create a basic MVP (Minimal Viable Product) to validate locally.
+ 3. Apply for local state grants or incubator acceleration pools.
+ 
+ *Tell me more about your startup idea! What sector are you targeting (e.g., Foodtech, Agritech, Handlooms, Retail, Software)?*`;
   }
-
+ 
   if (p.includes('course') || p.includes('learn') || p.includes('study') || p.includes('skill')) {
-    return `### 📖 Personalized Course & Skill Recommendations
-
-As AROHI, I recommend focusing on future-proof digital skills to maximize your market valuation:
-
-**1. Technology & Digital Skills**
-- *Full-Stack JavaScript/TypeScript* (High demand in metropolitan startups).
-- *Cloud Operations & DevOps* (Excellent starting salaries).
-- *Data Analytics & SQL* (Essential for business intelligence in banks & corporations).
-
-**2. Business & Communication Essentials**
-- *Professional English Speaking* (Boosts interview clearing rate by 80%).
-- *Financial Literacy & MS-Excel Mastery* (Highly valued in all administration roles).
-
-**3. Government Training Programs**
-- Look into **PMKVY (Pradhan Mantri Kaushal Vikas Yojana)** for free physical training and certification across technical sectors.
-
-*What skills are you most interested in mastering first?*`;
-}
-
-  return `### Hello! I am AROHI, your AI Opportunity Advisor 🌟
-
-Welcome to **Recruit.org.in** – India's One & Only AI-Powered Opportunity Ecosystem!
-
-I am your unified assistant across this entire platform. I can help you with:
-* 💼 **Discovering Jobs & Internships** that perfectly match your background.
-* 📝 **Reviewing your Resume** for ATS compatibility and missing keywords.
-* 🗣️ **Conducting Mock Interviews** with constructive feedback.
-* 🏛️ **Finding Government Schemes & Loans** (Mudra, PMEGP, Scholarships) to finance your education or business.
-* 🚀 **Validating Business Ideas** and guiding your startup/MSME registration.
-* 📖 **Designing custom Career Roadmaps** and course suggestions.
-
-*How can I help you take the next big step in your career journey today? Just type your query below!*`;
+    return fileIntro + `### 📖 Personalized Course & Skill Recommendations
+ 
+ As AROHI, I recommend focusing on future-proof digital skills to maximize your market valuation:
+ 
+ **1. Technology & Digital Skills**
+ - *Full-Stack JavaScript/TypeScript* (High demand in metropolitan startups).
+ - *Cloud Operations & DevOps* (Excellent starting salaries).
+ - *Data Analytics & SQL* (Essential for business intelligence in banks & corporations).
+ 
+ **2. Business & Communication Essentials**
+ - *Professional English Speaking* (Boosts interview clearing rate by 80%).
+ - *Financial Literacy & MS-Excel Mastery* (Highly valued in all administration roles).
+ 
+ **3. Government Training Programs**
+ - Look into **PMKVY (Pradhan Mantri Kaushal Vikas Yojana)** for free physical training and certification across technical sectors.
+ 
+ *What skills are you most interested in mastering first?*`;
+ }
+ 
+  return fileIntro + `### Hello! I am AROHI, your AI Opportunity Advisor 🌟
+ 
+ Welcome to **Recruit.org.in** – India's One & Only AI-Powered Opportunity Ecosystem!
+ 
+ I am your unified assistant across this entire platform. I can help you with:
+ * 💼 **Discovering Jobs & Internships** that perfectly match your background.
+ * 📝 **Reviewing your Resume** for ATS compatibility and missing keywords.
+ * 🗣️ **Conducting Mock Interviews** with constructive feedback.
+ * 🏛️ **Finding Government Schemes & Loans** (Mudra, PMEGP, Scholarships) to finance your education or business.
+ * 🚀 **Validating Business Ideas** and guiding your startup/MSME registration.
+ * 📖 **Designing custom Career Roadmaps** and course suggestions.
+ 
+ *How can I help you take the next big step in your career journey today? Just type your query below!*`;
 }
 
 // Vite middleware and asset delivery setup

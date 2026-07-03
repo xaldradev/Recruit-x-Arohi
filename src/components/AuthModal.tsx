@@ -43,10 +43,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     } catch (err: any) {
       console.error(err);
       let errMsg = err.message || 'An error occurred during Google sign-in.';
-      if (err.code === 'auth/popup-closed-by-user') {
-        errMsg = 'Sign-in window closed before completion.';
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        errMsg = 'Authentication popup request cancelled.';
+      const isPopupClosed = 
+        err.code === 'auth/popup-closed-by-user' || 
+        errMsg.includes('popup-closed-by-user') || 
+        err.code === 'auth/cancelled-popup-request' ||
+        errMsg.includes('cancelled-popup-request');
+
+      if (isPopupClosed) {
+        errMsg = 'The Google Sign-In pop-up was closed or blocked. If you didn\'t close it yourself, please allow pop-ups for this site, or try clicking the "Open in New Tab" button at the top-right of the preview window to sign in easily!';
+      } else if (err.code === 'auth/popup-blocked' || errMsg.includes('popup-blocked')) {
+        errMsg = 'Google Sign-In pop-up was blocked by your browser. Please allow pop-ups, or click the "Open in New Tab" button at the top-right of the preview window to bypass browser blocks.';
       }
       setError(errMsg);
     } finally {
@@ -320,6 +326,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </svg>
               <span>Continue with Google</span>
             </button>
+            <p className="mt-3 text-center text-[10px] text-slate-400 font-medium leading-relaxed bg-[#05030d] p-2.5 rounded-xl border border-purple-950/50">
+              💡 <span className="text-purple-300 font-bold">Pop-up Tip:</span> If Google Sign-In windows get blocked or closed automatically in preview, please use the <strong className="text-cyan-400">"Open in New Tab"</strong> button on the top-right of the screen to sign in perfectly.
+            </p>
           </>
         )}
 
