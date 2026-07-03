@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import { createResumeDocx } from './server-resume.ts';
 
 dotenv.config();
 
@@ -216,6 +217,421 @@ app.get('/api/admin/stats', (req, res) => {
   });
 });
 
+// Server-Side Real Persistence for Admin Panel
+let serverAdminUsers = [
+  {
+    id: 'user-001',
+    email: 'elitetraderjunoon@gmail.com',
+    name: 'Commander Junoon',
+    role: 'Super Administrator',
+    status: 'VIP',
+    permissions: {
+      canEditJobs: true,
+      canApproveApps: true,
+      canViewFinance: true
+    },
+    services: {
+      path1: true,
+      path2: true,
+      path3: true
+    },
+    takenCourses: ['MSME Business Fundamentals', 'Drone Piloting & Agri-Spraying'],
+    usage: {
+      chatsWithArohi: 142,
+      resumeScans: 28,
+      mockInterviews: 12
+    },
+    customizedSettings: {
+      tutoringSlot: 'Every Tuesday 18:00 IST',
+      priorityLevel: 'Critical',
+      assignedMentor: 'Dr. Debasish Mohanty (Senior Fellow)'
+    }
+  },
+  {
+    id: 'user-002',
+    email: 'rajesh.kumar@example.com',
+    name: 'Rajesh Kumar Singh',
+    role: 'Premium Candidate',
+    status: 'Active',
+    permissions: {
+      canEditJobs: false,
+      canApproveApps: false,
+      canViewFinance: false
+    },
+    services: {
+      path1: true,
+      path2: false,
+      path3: false
+    },
+    takenCourses: ['Drone Piloting & Agri-Spraying'],
+    usage: {
+      chatsWithArohi: 45,
+      resumeScans: 6,
+      mockInterviews: 4
+    },
+    customizedSettings: {
+      tutoringSlot: 'Every Saturday 10:00 IST',
+      priorityLevel: 'High',
+      assignedMentor: 'Meera Patnaik (Aviation Expert)'
+    }
+  },
+  {
+    id: 'user-003',
+    email: 'amit.patil@example.com',
+    name: 'Amit Suresh Patil',
+    role: 'Standard Applicant',
+    status: 'Active',
+    permissions: {
+      canEditJobs: false,
+      canApproveApps: false,
+      canViewFinance: false
+    },
+    services: {
+      path1: false,
+      path2: false,
+      path3: false
+    },
+    takenCourses: [],
+    usage: {
+      chatsWithArohi: 12,
+      resumeScans: 2,
+      mockInterviews: 1
+    },
+    customizedSettings: {
+      tutoringSlot: 'None Scheduled',
+      priorityLevel: 'Standard',
+      assignedMentor: 'Automated AI Guide'
+    }
+  },
+  {
+    id: 'user-004',
+    email: 'subhasish.sen@example.com',
+    name: 'Subhasish Sen',
+    role: 'MSME Entrepreneur',
+    status: 'Active',
+    permissions: {
+      canEditJobs: false,
+      canApproveApps: false,
+      canViewFinance: false
+    },
+    services: {
+      path1: false,
+      path2: false,
+      path3: true
+    },
+    takenCourses: ['MSME Business Fundamentals'],
+    usage: {
+      chatsWithArohi: 68,
+      resumeScans: 0,
+      mockInterviews: 0
+    },
+    customizedSettings: {
+      tutoringSlot: 'Every Monday 14:00 IST',
+      priorityLevel: 'High',
+      assignedMentor: 'Subrata Sahoo (Business Advisor)'
+    }
+  },
+  {
+    id: 'user-005',
+    email: 'meera.patnaik@example.com',
+    name: 'Meera Patnaik',
+    role: 'VIP Member',
+    status: 'VIP',
+    permissions: {
+      canEditJobs: false,
+      canApproveApps: true,
+      canViewFinance: false
+    },
+    services: {
+      path1: true,
+      path2: true,
+      path3: false
+    },
+    takenCourses: ['Drone Piloting & Agri-Spraying'],
+    usage: {
+      chatsWithArohi: 110,
+      resumeScans: 15,
+      mockInterviews: 9
+    },
+    customizedSettings: {
+      tutoringSlot: 'Every Thursday 11:00 IST',
+      priorityLevel: 'Critical',
+      assignedMentor: 'Dr. Debasish Mohanty (Senior Fellow)'
+    }
+  }
+];
+
+let serverPayments = [
+  {
+    id: 'TXN-984102',
+    userEmail: 'elitetraderjunoon@gmail.com',
+    amount: 399,
+    planName: 'Path 3: Udyam Business Assistance Plan',
+    method: 'UPI',
+    date: '29/06/2026',
+    status: 'Verified'
+  },
+  {
+    id: 'TXN-894103',
+    userEmail: 'rajesh.kumar@example.com',
+    amount: 399,
+    planName: 'Path 1: Career, Jobs & Resume Plan',
+    method: 'GooglePlay',
+    date: '28/06/2026',
+    status: 'Verified'
+  },
+  {
+    id: 'TXN-150492',
+    userEmail: 'meera.patnaik@example.com',
+    amount: 399,
+    planName: 'Path 1: Career, Jobs & Resume Plan',
+    method: 'UPI',
+    date: '28/06/2026',
+    status: 'Verified'
+  },
+  {
+    id: 'TXN-385012',
+    userEmail: 'subhasish.sen@example.com',
+    amount: 399,
+    planName: 'Path 3: Udyam Business Assistance Plan',
+    method: 'GooglePlay',
+    date: '26/06/2026',
+    status: 'Pending'
+  },
+  {
+    id: 'TXN-492104',
+    userEmail: 'amit.patil@example.com',
+    amount: 99,
+    planName: 'Professional ATS Resume Builder',
+    method: 'UPI',
+    date: '24/06/2026',
+    status: 'Verified'
+  }
+];
+
+let serverChatLogs = [
+  {
+    id: 'chat-001',
+    userEmail: 'rajesh.kumar@example.com',
+    userName: 'Rajesh Kumar Singh',
+    topic: 'SSC MTS Eligibility',
+    sentiment: 'Neutral',
+    messages: [
+      { sender: 'user', text: 'Am I eligible for SSC MTS and Havaldar exam if I am 26 years old?', time: '28/06 14:10' },
+      { sender: 'arohi', text: 'Yes, Rajesh! The maximum age limit for SSC MTS general posts is 25 years, but for certain posts like Havaldar inside CBIC & CBN and specific departments, it is 27 years. Since you are 26, you can definitely apply for those posts! Would you like me to share the educational criteria?', time: '28/06 14:11' },
+      { sender: 'user', text: 'Yes, please share the eligibility too.', time: '28/06 14:12' },
+      { sender: 'arohi', text: 'Excellent! The minimum educational qualification is Matriculation (Class 10th pass) or equivalent from a recognized board inside India. Since you hold a Graduate Degree from Patna University, you are fully over-qualified and highly eligible!', time: '28/06 14:12' }
+    ]
+  },
+  {
+    id: 'chat-002',
+    userEmail: 'subhasish.sen@example.com',
+    userName: 'Subhasish Sen',
+    topic: 'Mudra Loan Kishor Category',
+    sentiment: 'Urgent',
+    messages: [
+      { sender: 'user', text: 'I want to apply for a Mudra loan of 4 Lakhs to purchase inventory for my handloom retail shop. Which category is best?', time: '27/06 10:15' },
+      { sender: 'arohi', text: 'Hello Subhasish! For a capital loan of ₹4 Lakhs, the **Kishor Category** is the perfect fit. Mudra Kishor covers loans from ₹50,000 up to ₹5 Lakhs. It requires basic business registration (like Udyam MSME) and a simple project report. Would you like me to map out the required documents?', time: '27/06 10:16' },
+      { sender: 'user', text: 'Yes, please list the documents. I have my Udyam cert.', time: '27/06 10:17' },
+      { sender: 'arohi', text: 'Wonderful! Having your Udyam Certificate is a massive headstart. You will also need: 1) Last 6 months bank statements, 2) Identity and address proof, 3) Business address proof, and 4) Quotation for the inventory you wish to purchase. Since it is collateral-free, you do not need to pledge any property!', time: '27/06 10:18' }
+    ]
+  },
+  {
+    id: 'chat-003',
+    userEmail: 'elitetraderjunoon@gmail.com',
+    userName: 'Commander Junoon',
+    topic: 'Custom Preparation Strategy',
+    sentiment: 'Positive',
+    messages: [
+      { sender: 'user', text: 'Generate an intensive daily study roadmap for cracking civil service banking exams.', time: '29/06 09:30' },
+      { sender: 'arohi', text: 'Pranam, Commander Junoon! To crack prestigious examinations like IBPS PO or RBI Assistant, here is your high-impact daily study block:\n\n* **Morning Block (2 Hours):** Quantitative Aptitude & Data Interpretation formulas.\n* **Noon Block (1.5 Hours):** Logical Reasoning puzzles and blood-relation drills.\n* **Evening Block (2 Hours):** General Awareness & Financial Current Affairs.\n* **Night Block (1 Hour):** Speed-reading English comprehension practice.\n\nI have locked this custom schedule to your dashboard tracker. Shall we perform a mock aptitude evaluation now?', time: '29/06 09:31' }
+    ]
+  }
+];
+
+// Helper to check authorization
+function checkAdminAuth(req: express.Request) {
+  const authHeader = req.headers.authorization;
+  return authHeader === 'Bearer recruit_admin_authorized_token_2026';
+}
+
+// 1. Users list
+app.get('/api/admin/users', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  return res.json({ users: serverAdminUsers });
+});
+
+// 2. Add or Update User
+app.post('/api/admin/update-user', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  const updatedUser = req.body;
+  if (!updatedUser || !updatedUser.email) {
+    return res.status(400).json({ error: 'User data and email are required' });
+  }
+
+  const idx = serverAdminUsers.findIndex(u => u.email.toLowerCase() === updatedUser.email.toLowerCase());
+  if (idx !== -1) {
+    // Update existing user properties
+    serverAdminUsers[idx] = {
+      ...serverAdminUsers[idx],
+      ...updatedUser,
+      id: updatedUser.id || serverAdminUsers[idx].id
+    };
+    logActivity('admin', `Admin updated profile for user: ${updatedUser.email}`, { email: updatedUser.email });
+    return res.json({ success: true, user: serverAdminUsers[idx] });
+  } else {
+    // Add new user
+    const newUser = {
+      id: updatedUser.id || `user-${Math.random().toString(36).substring(2, 9)}`,
+      email: updatedUser.email,
+      name: updatedUser.name || updatedUser.email.split('@')[0],
+      role: updatedUser.role || 'Standard Applicant',
+      status: updatedUser.status || 'Active',
+      permissions: updatedUser.permissions || { canEditJobs: false, canApproveApps: false, canViewFinance: false },
+      services: updatedUser.services || { path1: false, path2: false, path3: false },
+      takenCourses: updatedUser.takenCourses || [],
+      usage: updatedUser.usage || { chatsWithArohi: 0, resumeScans: 0, mockInterviews: 0 },
+      customizedSettings: updatedUser.customizedSettings || { tutoringSlot: 'None Scheduled', priorityLevel: 'Standard', assignedMentor: 'Automated AI Guide' }
+    };
+    serverAdminUsers.push(newUser);
+    logActivity('admin', `Admin added new user profile: ${newUser.email}`, { email: newUser.email });
+    return res.json({ success: true, user: newUser });
+  }
+});
+
+// 3. Delete user
+app.post('/api/admin/delete-user', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  const initialLength = serverAdminUsers.length;
+  serverAdminUsers = serverAdminUsers.filter(u => u.email.toLowerCase() !== email.toLowerCase());
+  if (serverAdminUsers.length < initialLength) {
+    logActivity('admin', `Admin deleted user profile: ${email}`, { email });
+    return res.json({ success: true });
+  }
+  return res.status(404).json({ error: 'User not found' });
+});
+
+// 4. Payments list
+app.get('/api/admin/payments', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  return res.json({ payments: serverPayments });
+});
+
+// 5. Add payment
+app.post('/api/admin/add-payment', (req, res) => {
+  const { userEmail, amount, planName, method } = req.body;
+  if (!userEmail || !amount || !planName) {
+    return res.status(400).json({ error: 'userEmail, amount and planName are required' });
+  }
+
+  const newTxn = {
+    id: `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+    userEmail: userEmail.toLowerCase(),
+    amount: Number(amount),
+    planName,
+    method: method || 'UPI',
+    date: new Date().toLocaleDateString('en-GB'),
+    status: 'Verified' as const
+  };
+
+  serverPayments.unshift(newTxn);
+
+  // Sync to server users list as well!
+  const userIdx = serverAdminUsers.findIndex(u => u.email.toLowerCase() === userEmail.toLowerCase());
+  if (userIdx !== -1) {
+    const lowerPlan = planName.toLowerCase();
+    if (lowerPlan.includes('path 1') || lowerPlan.includes('career') || lowerPlan.includes('resume')) {
+      serverAdminUsers[userIdx].services.path1 = true;
+    } else if (lowerPlan.includes('path 2') || lowerPlan.includes('skill')) {
+      serverAdminUsers[userIdx].services.path2 = true;
+    } else if (lowerPlan.includes('path 3') || lowerPlan.includes('udyam') || lowerPlan.includes('business')) {
+      serverAdminUsers[userIdx].services.path3 = true;
+    }
+    if (lowerPlan.includes('resume')) {
+      serverAdminUsers[userIdx].usage.resumeScans += 1;
+    }
+  } else {
+    const lowerPlan = planName.toLowerCase();
+    const services = {
+      path1: lowerPlan.includes('path 1') || lowerPlan.includes('career') || lowerPlan.includes('resume'),
+      path2: lowerPlan.includes('path 2') || lowerPlan.includes('skill'),
+      path3: lowerPlan.includes('path 3') || lowerPlan.includes('udyam') || lowerPlan.includes('business')
+    };
+
+    serverAdminUsers.push({
+      id: `user-${Math.random().toString(36).substring(2, 9)}`,
+      email: userEmail.toLowerCase(),
+      name: userEmail.split('@')[0],
+      role: 'Premium Candidate',
+      status: 'Active',
+      permissions: { canEditJobs: false, canApproveApps: false, canViewFinance: false },
+      services,
+      takenCourses: [],
+      usage: { chatsWithArohi: 1, resumeScans: lowerPlan.includes('resume') ? 1 : 0, mockInterviews: 0 },
+      customizedSettings: { tutoringSlot: 'None Scheduled', priorityLevel: 'High', assignedMentor: 'Automated AI Guide' }
+    });
+  }
+
+  logActivity('enroll', `Subscription payment of ₹${amount} received for "${planName}" from ${userEmail}`, { userEmail, amount, planName });
+  return res.json({ success: true, transaction: newTxn });
+});
+
+// 6. Sync / Add to user Chat logs
+app.post('/api/admin/sync-chat', (req, res) => {
+  const { userEmail, userName, sender, text, topic } = req.body;
+  if (!userEmail || !sender || !text) {
+    return res.status(400).json({ error: 'userEmail, sender and text are required' });
+  }
+
+  const cleanEmail = userEmail.toLowerCase();
+  const msgTime = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  let log = serverChatLogs.find(l => l.userEmail.toLowerCase() === cleanEmail);
+  if (log) {
+    log.messages.push({ sender, text, time: msgTime });
+    if (topic) log.topic = topic;
+  } else {
+    log = {
+      id: `chat-${Math.random().toString(36).substring(2, 9)}`,
+      userEmail: cleanEmail,
+      userName: userName || cleanEmail.split('@')[0],
+      topic: topic || 'General Consultation',
+      sentiment: text.toLowerCase().includes('help') || text.toLowerCase().includes('urgent') ? 'Urgent' : 'Neutral',
+      messages: [{ sender, text, time: msgTime }]
+    };
+    serverChatLogs.unshift(log);
+  }
+
+  const userIdx = serverAdminUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
+  if (userIdx !== -1) {
+    if (sender === 'user') {
+      serverAdminUsers[userIdx].usage.chatsWithArohi += 1;
+    }
+  }
+
+  return res.json({ success: true, chatLog: log });
+});
+
+// 7. Chats list
+app.get('/api/admin/chats', (req, res) => {
+  if (!checkAdminAuth(req)) {
+    return res.status(403).json({ error: 'Access denied: Unauthorized' });
+  }
+  return res.json({ chats: serverChatLogs });
+});
+
 // Resilient API calling helper with automatic fallback models to prevent 503 "High Demand" errors
 async function generateContentWithFallback(aiClientInstance: GoogleGenAI, options: any) {
   const modelsToTry = [
@@ -308,6 +724,43 @@ app.post('/api/chat', async (req, res) => {
         dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ENGLISH. The user prefers English. Maintain default English unless they type in Hindi/Odia/Hinglish/English-sounding Odia, in which case match their chosen language perfectly.]`;
       }
 
+      if (messageText.toLowerCase().includes('resume') || messageText.toLowerCase().includes('cv') || messageText.toLowerCase().includes('biodata') || messageText.toLowerCase().includes('career')) {
+        dynamicInstruction += `\n\n[RESUME DIRECTIVE: If you are writing, drafting, or editing a resume, CV, or professional profile for the user, you MUST append a valid JSON representation of the resume at the very end of your response, wrapped inside a single block like "[RESUME_DOCX_DATA_START]" and "[RESUME_DOCX_DATA_END]". Do not mention this JSON in the conversational text. Keep the JSON highly valid.
+Schema to use:
+{
+  "name": "Full Name",
+  "email": "email@example.com",
+  "phone": "Phone number",
+  "linkedin": "linkedin URL/handle",
+  "github": "github URL/handle",
+  "summary": "Professional summary statement",
+  "skills": ["Skill 1", "Skill 2"],
+  "experience": [
+    {
+      "company": "Company name",
+      "role": "Job role/title",
+      "duration": "Duration (e.g. June 2024 - Present)",
+      "achievements": ["Achievement bullet 1", "Achievement bullet 2"]
+    }
+  ],
+  "education": [
+    {
+      "school": "University/School name",
+      "degree": "Degree earned",
+      "duration": "Duration (e.g. 2020 - 2024)"
+    }
+  ],
+  "projects": [
+    {
+      "title": "Project Title",
+      "description": "Short project summary",
+      "technologies": ["React", "TypeScript"]
+    }
+  ]
+}
+Construct this JSON strictly based on details discussed, or use standard professional default placeholders corresponding to their profile if details are sparse. This ensures they have a working Microsoft Word file download immediately!]`;
+      }
+
       // Call Gemini API using modern SDK with fallback strategy
       const response = await generateContentWithFallback(aiClient, {
         contents: [
@@ -334,6 +787,27 @@ app.post('/api/chat', async (req, res) => {
       response: `[AROHI AI Server Note: Encountered an API error. Here is a simulated response to help you build:]\n\n${getArohiFallbackResponse(messageText, file ? file.name : undefined)}`,
       error: error.message
     });
+  }
+});
+
+// 1.5. Generate Resume Word Document (.docx) Endpoint
+app.post('/api/generate-resume-docx', async (req, res) => {
+  try {
+    const resumeData = req.body;
+    if (!resumeData || !resumeData.name) {
+      return res.status(400).json({ error: 'Name is required to generate a resume.' });
+    }
+
+    const buffer = await createResumeDocx(resumeData);
+    const safeName = resumeData.name.replace(/\s+/g, '_');
+    const filename = `${safeName}_Resume.docx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Error in /api/generate-resume-docx:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -863,6 +1337,81 @@ function getArohiFallbackResponse(userPrompt: string, fileName?: string): string
   if (fileName) {
     const fileExt = fileName.split('.').pop()?.toLowerCase() || '';
     fileIntro = `### 📎 Document Uploaded: \`${fileName}\`\n\nI have successfully received your document attachment! Since the server is currently running in fallback/demo mode without an active live key, I cannot perform a full multi-page parsing. However, as **AROHI**, I can confirm that this **.${fileExt.toUpperCase()}** file has been safely registered for career/MSME analysis. \n\n*If you enter a valid API key in Settings > Secrets, I will utilize state-of-the-art visual and linguistic models to extract specific content from your files!* \n\n---\n\n`;
+  }
+
+  if (p.includes('resume') || p.includes('cv') || p.includes('biodata')) {
+    const fallbackResumeData = {
+      name: "Rajesh Kumar",
+      email: "rajesh.kumar@recruit.org.in",
+      phone: "+91 98765 43210",
+      linkedin: "linkedin.com/in/rajeshkumar",
+      github: "github.com/rajeshkumar",
+      summary: "Dynamic Software Developer with 2+ years of experience building modern web applications using React, Node.js, and Express. Passionate about writing clean, scalable code and assisting community platforms in digital transformation.",
+      skills: ["React", "TypeScript", "Node.js", "Express", "Firebase", "SQL", "Tailwind CSS", "RESTful APIs", "Git & GitHub"],
+      experience: [
+        {
+          company: "Oditree Services",
+          role: "Junior Software Engineer",
+          duration: "May 2024 - Present",
+          achievements: [
+            "Co-developed the frontend of a career counseling portal using React 19, improving user engagement by 45%.",
+            "Designed and optimized server-side REST APIs in Node.js, reducing server response time by 30%.",
+            "Collaborated with senior engineers to implement role-based authentication and secure Firestore persistence."
+          ]
+        },
+        {
+          company: "Braga Technologies Private Limited",
+          role: "Web Development Intern",
+          duration: "December 2023 - April 2024",
+          achievements: [
+            "Assisted in crafting responsive landing pages with Tailwind CSS, ensuring 100% mobile-first compatibility.",
+            "Integrated third-party APIs for location tagging and government scheme discovery."
+          ]
+        }
+      ],
+      education: [
+        {
+          school: "Biju Patnaik University of Technology (BPUT)",
+          degree: "Bachelor of Technology in Computer Science",
+          duration: "2020 - 2024"
+        }
+      ],
+      projects: [
+        {
+          title: "Arohi Career Companion",
+          description: "An AI opportunity companion that helps students map custom roadmaps and find government schemes.",
+          technologies: ["React", "Express", "Gemini API", "Tailwind CSS"]
+        }
+      ]
+    };
+
+    return fileIntro + `### 📝 Custom Resume Builder by AROHI AI
+    
+Hello! I have designed a highly optimized, professional, ATS-compatible resume based on standard engineering trends in association with **BRAGA TECHNOLOGIES** and **ODITREE SERVICES**.
+
+Below is your draft. You can download the native, beautifully-aligned **Microsoft Word (.docx)** version immediately by clicking the button below!
+
+---
+
+**${fallbackResumeData.name.toUpperCase()}**
+*Email:* ${fallbackResumeData.email} | *Phone:* ${fallbackResumeData.phone}
+*LinkedIn:* ${fallbackResumeData.linkedin}
+
+#### **PROFESSIONAL SUMMARY**
+${fallbackResumeData.summary}
+
+#### **SKILLS**
+${fallbackResumeData.skills.join(', ')}
+
+#### **EXPERIENCE**
+**Junior Software Engineer** - *Oditree Services* (May 2024 - Present)
+* Co-developed the frontend of a career counseling portal using React 19, improving user engagement by 45%.
+* Designed and optimized server-side REST APIs in Node.js, reducing server response time by 30%.
+
+**Web Development Intern** - *Braga Technologies Private Limited* (December 2023 - April 2024)
+* Assisted in crafting responsive landing pages with Tailwind CSS, ensuring 100% mobile-first compatibility.
+
+[RESUME_DOCX_DATA_START]${JSON.stringify(fallbackResumeData)}[RESUME_DOCX_DATA_END]`;
   }
 
   if (p.includes('job') || p.includes('vacancy') || p.includes('work') || p.includes('career')) {

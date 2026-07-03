@@ -146,6 +146,29 @@ function renderMarkdown(content: string) {
   return <div className="space-y-1">{elements}</div>;
 }
 
+function parseMessageResume(content: string) {
+  const startIndex = content.indexOf('[RESUME_DOCX_DATA_START]');
+  const endIndex = content.indexOf('[RESUME_DOCX_DATA_END]');
+  
+  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+    const rawJson = content.substring(startIndex + '[RESUME_DOCX_DATA_START]'.length, endIndex);
+    const textWithoutJson = content.substring(0, startIndex) + content.substring(endIndex + '[RESUME_DOCX_DATA_END]'.length);
+    try {
+      const parsedData = JSON.parse(rawJson);
+      return {
+        cleanedContent: textWithoutJson.trim(),
+        resumeData: parsedData
+      };
+    } catch (e) {
+      console.error("Failed to parse resume JSON in message", e);
+    }
+  }
+  return {
+    cleanedContent: content,
+    resumeData: null
+  };
+}
+
 export default function ArohiChat({ initialPrompt, onNavigateTab, onMinimize, onClose, language = 'en' }: ArohiChatProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -174,6 +197,39 @@ export default function ArohiChat({ initialPrompt, onNavigateTab, onMinimize, on
   const [recording, setRecording] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; mimeType: string; base64: string } | null>(null);
+  const [isDownloadingResume, setIsDownloadingResume] = useState<string | null>(null);
+
+  const handleDownloadResumeDocx = async (resumeData: any, messageId: string) => {
+    setIsDownloadingResume(messageId);
+    try {
+      const response = await fetch('/api/generate-resume-docx', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(resumeData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate Word document');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${resumeData.name.replace(/\s+/g, '_')}_Resume.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      alert('Failed to download Word resume. Please try again.');
+    } finally {
+      setIsDownloadingResume(null);
+    }
+  };
 
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
     { id: '1', title: 'Full Stack Career Roadmap', date: 'Today' },
@@ -592,38 +648,74 @@ As **AROHI**, your opportunity advisor, let me recommend checking out our **Jobs
 
         {/* Messages Scrolling Container */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 bg-[#090714]">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.role !== 'user' && (
-                <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md border border-[#3b2a80] shrink-0">
-                  <ArohiAvatar className="w-full h-full" />
-                </div>
-              )}
+          {messages.map((msg) => {
+            const parsed = msg.role === 'assistant' 
+              ? parseMessageResume(msg.content) 
+              : { cleanedContent: msg.content, resumeData: null };
 
-              <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 shadow-md leading-relaxed text-sm ${
-                msg.role === 'user'
-                  ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-tr-none font-medium shadow-[0_4px_15px_rgba(124,58,237,0.2)]'
-                  : 'bg-[#130f2c] text-slate-100 rounded-tl-none border border-[#2b1f5c]'
-              }`}>
-                {/* Parse standard markdown formatting */}
-                <div className="prose prose-sm max-w-none text-xs md:text-sm">
-                  {renderMarkdown(msg.content)}
+            return (
+              <div
+                key={msg.id}
+                className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.role !== 'user' && (
+                  <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md border border-[#3b2a80] shrink-0">
+                    <ArohiAvatar className="w-full h-full" />
+                  </div>
+                )}
+
+                <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 shadow-md leading-relaxed text-sm ${
+                  msg.role === 'user'
+                    ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-white rounded-tr-none font-medium shadow-[0_4px_15px_rgba(124,58,237,0.2)]'
+                    : 'bg-[#130f2c] text-slate-100 rounded-tl-none border border-[#2b1f5c]'
+                }`}>
+                  {/* Parse standard markdown formatting */}
+                  <div className="prose prose-sm max-w-none text-xs md:text-sm">
+                    {renderMarkdown(parsed.cleanedContent)}
+                  </div>
+
+                  {parsed.resumeData && (
+                    <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-[#1c1445] to-[#26165e] border border-[#a78bfa]/40 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[#7c3aed]/30 rounded-lg text-[#c084fc] border border-[#7c3aed]/50 shrink-0">
+                          <Briefcase className="w-5 h-5 text-indigo-300" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider">Download Word Resume</h4>
+                          <p className="text-[10px] text-slate-300 mt-0.5 font-semibold">Professional Microsoft Word (.docx) layout ready for HR</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDownloadResumeDocx(parsed.resumeData, msg.id)}
+                        disabled={isDownloadingResume === msg.id}
+                        className="w-full sm:w-auto px-4 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:bg-violet-950 disabled:text-slate-400 text-white font-extrabold text-[11px] uppercase tracking-wider rounded-lg shadow-md cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-1.5 shrink-0"
+                      >
+                        {isDownloadingResume === msg.id ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Generating...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowRight className="w-3.5 h-3.5 text-emerald-300" /> Download (.docx)
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className={`text-[10px] mt-2 flex justify-end ${msg.role === 'user' ? 'text-violet-200' : 'text-slate-400'} font-semibold`}>
+                    {msg.timestamp}
+                  </div>
                 </div>
-                <div className={`text-[10px] mt-2 flex justify-end ${msg.role === 'user' ? 'text-violet-200' : 'text-slate-400'} font-semibold`}>
-                  {msg.timestamp}
-                </div>
+
+                {msg.role === 'user' && (
+                  <div className="w-9 h-9 rounded-xl bg-[#7c3aed]/20 text-[#c084fc] flex items-center justify-center shrink-0 shadow-md border border-[#7c3aed]/30 font-bold text-xs uppercase">
+                    <User className="w-5 h-5" />
+                  </div>
+                )}
               </div>
-
-              {msg.role === 'user' && (
-                <div className="w-9 h-9 rounded-xl bg-[#7c3aed]/20 text-[#c084fc] flex items-center justify-center shrink-0 shadow-md border border-[#7c3aed]/30 font-bold text-xs uppercase">
-                  <User className="w-5 h-5" />
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
 
           {isLoading && (
             <div className="flex gap-4 justify-start">
