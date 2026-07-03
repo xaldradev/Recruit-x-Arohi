@@ -57,7 +57,7 @@ export const translations = {
     // Welcome Landing & Categories
     welcomeTo: "WELCOME TO",
     dreamPrepare: "Dream • Prepare • Achieve",
-    landingDesc: "Your AI-powered career partner. Find jobs, learn skills, get hired — all in one intelligent platform.",
+    landingDesc: "India's premier AI-powered ecosystem spanning all our major wings: Find Jobs, learn professional Skill Courses, study School Syllabus (Class 1-10), explore Business & MSME Guides, and access Government Schemes — all under one intelligent hub.",
     enterBtn: "Enter The Journey",
     buildFuture: "Let's build your future, together.",
     arohiActive: "AROHI AI Active",
@@ -129,7 +129,7 @@ export const translations = {
     // Welcome Landing & Categories
     welcomeTo: "स्वागत है आपका",
     dreamPrepare: "सपना • तैयारी • सफलता",
-    landingDesc: "आपका एआई-संचालित करियर साथी। नौकरियां खोजें, कौशल सीखें, भर्ती हों - सब एक बुद्धिमान मंच में।",
+    landingDesc: "भारत का अग्रणी एआई-संचालित इकोसिस्टम जो हमारे सभी मुख्य क्षेत्रों को जोड़ता है: नौकरियां खोजें, व्यावसायिक कौशल पाठ्यक्रम सीखें, स्कूली पाठ्यक्रम (कक्षा 1-10) पढ़ें, व्यवसाय एवं एमएसएमई गाइड देखें और सरकारी योजनाएं पाएं - सब एक बुद्धिमान मंच पर।",
     enterBtn: "यात्रा शुरू करें",
     buildFuture: "आइए मिलकर आपके भविष्य का निर्माण करें।",
     arohiActive: "आरोही एआई सक्रिय",
@@ -201,7 +201,7 @@ export const translations = {
     // Welcome Landing & Categories
     welcomeTo: "ସ୍ୱାଗତମ୍",
     dreamPrepare: "ସ୍ୱପ୍ନ • ପ୍ରସ୍ତୁତି • ସଫଳତା",
-    landingDesc: "ଆପଣଙ୍କ AI-ଚାଳିତ କ୍ୟାରିୟର ସାଥୀ | ଚାକିରି ଖୋଜନ୍ତୁ, ଦକ୍ଷତା ଶିଖନ୍ତୁ, ନିଯୁକ୍ତି ପାଆନ୍ତୁ — ସବୁ କିଛି ଏହି ଗୋଟିଏ ପ୍ଲାଟଫର୍ମରେ |",
+    landingDesc: "ଭାରତର ଅଗ୍ରଣୀ AI-ଚାଳିତ ଇକୋସିଷ୍ଟମ୍ ଯାହା ଆମର ସମସ୍ତ ବିଭାଗକୁ ସଂଯୋଗ କରେ: ଚାକିରି ଖୋଜନ୍ତୁ, ପ୍ରଫେସନାଲ୍ ଦକ୍ଷତା ପାଠ୍ୟକ୍ରମ ଶିଖନ୍ତୁ, ସ୍କୁଲ୍ ସିଲାବସ୍ (୧-୧୦ ଶ୍ରେଣୀ) ପଢନ୍ତୁ, ବ୍ୟବସାୟ ଓ MSME ଗାଇଡ୍ ଦେଖନ୍ତୁ ଏବଂ ସରକାରୀ ଯୋଜନା ପାଆନ୍ତୁ — ସବୁ କିଛି ଏହି ଗୋଟିଏ ମଞ୍ଚରେ |",
     enterBtn: "ପ୍ରବେଶ କରନ୍ତୁ",
     buildFuture: "ଆସନ୍ତୁ ମିଶି ଆପଣଙ୍କ ଭବିଷ୍ୟତ ଗଢିବା |",
     arohiActive: "ଆରୋହୀ AI ସକ୍ରିୟ",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { 
   GraduationCap, 
@@ -15,7 +15,8 @@ import {
   CheckCircle,
   MessageSquare,
   Globe,
-  ChevronDown
+  ChevronDown,
+  MessageCircle
 } from 'lucide-react';
 import { Language, getTranslation } from '../translations';
 
@@ -27,6 +28,27 @@ interface WelcomeLandingProps {
 }
 
 export default function WelcomeLanding({ onEnter, setActiveTab, language, onLanguageChange }: WelcomeLandingProps) {
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
+        setIsLangOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getLangVisual = (lang: Language) => {
+    switch (lang) {
+      case 'en': return 'AA';
+      case 'hi': return 'अ';
+      case 'or': return 'ଅଅ';
+    }
+  };
+
   // Helper function to handle badge click (teleports user directly inside targeted page)
   const handleBadgeClick = (tabId: string) => {
     setActiveTab(tabId);
@@ -183,43 +205,70 @@ export default function WelcomeLanding({ onEnter, setActiveTab, language, onLang
     <div className="relative w-full h-screen min-h-[580px] sm:min-h-[640px] bg-[#020208] text-white flex flex-col justify-between overflow-hidden font-sans select-none">
       
       {/* Top Floating Language Dropdown Selector */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center gap-2">
-        <div className="relative group/lang">
-          <button className="flex items-center gap-2 px-3.5 py-2 bg-[#120d2b]/60 hover:bg-[#1b143f]/80 border border-[#3e2b85]/50 rounded-full text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2" ref={langDropdownRef}>
+        <div className="relative">
+          <button 
+            onClick={() => setIsLangOpen(!isLangOpen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#120d2b]/80 hover:bg-[#1b143f]/80 border border-[#3e2b85]/50 rounded-full text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer"
+          >
             <Globe className="w-3.5 h-3.5 text-purple-400 animate-spin" style={{ animationDuration: '15s' }} />
-            <span>{language === 'en' ? 'English' : language === 'hi' ? 'हिंदी (Hindi)' : 'ଓଡ଼ିଆ (Odia)'}</span>
-            <ChevronDown className="w-3 h-3 text-slate-400 group-hover/lang:rotate-180 transition-transform duration-300" />
+            <span className="font-extrabold text-[11px] tracking-wide text-purple-200">AA | ଅଅ</span>
+            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
           </button>
           
-          <div className="absolute right-0 mt-2 w-40 bg-[#0c091d]/95 border border-[#2b1f5c]/70 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-lg transition-all duration-200 opacity-0 scale-95 pointer-events-none group-hover/lang:opacity-100 group-hover/lang:scale-100 group-hover/lang:pointer-events-auto z-[60]">
-            <div className="px-3 py-2 border-b border-[#2b1f5c]/30 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+          <div 
+            className={`absolute right-0 mt-2 w-44 bg-[#0d091e] border border-[#3e2b85]/70 rounded-2xl overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.6)] backdrop-blur-lg transition-all duration-300 ${
+              isLangOpen 
+                ? 'opacity-100 scale-100 pointer-events-auto' 
+                : 'opacity-0 scale-95 pointer-events-none'
+            } z-[60]`}
+          >
+            <div className="px-3.5 py-2 border-b border-[#2b1f5c]/40 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
               {getTranslation('selectLang', language)}
             </div>
             <button
-              onClick={() => onLanguageChange('en')}
-              className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
-                language === 'en' ? 'bg-[#7c3aed]/20 text-purple-200 font-bold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              onClick={() => {
+                onLanguageChange('en');
+                setIsLangOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                language === 'en' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <span>English</span>
+              <div className="flex items-center gap-2">
+                <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">AA</span>
+                <span>English</span>
+              </div>
               {language === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
             </button>
             <button
-              onClick={() => onLanguageChange('hi')}
-              className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
-                language === 'hi' ? 'bg-[#7c3aed]/20 text-purple-200 font-bold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              onClick={() => {
+                onLanguageChange('hi');
+                setIsLangOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                language === 'hi' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <span>हिंदी (Hindi)</span>
+              <div className="flex items-center gap-2">
+                <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">अ</span>
+                <span>हिंदी (Hindi)</span>
+              </div>
               {language === 'hi' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
             </button>
             <button
-              onClick={() => onLanguageChange('or')}
-              className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
-                language === 'or' ? 'bg-[#7c3aed]/20 text-purple-200 font-bold' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              onClick={() => {
+                onLanguageChange('or');
+                setIsLangOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                language === 'or' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
               }`}
             >
-              <span>ଓଡ଼ିଆ (Odia)</span>
+              <div className="flex items-center gap-2">
+                <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">ଅଅ</span>
+                <span>ଓଡ଼ିଆ (Odia)</span>
+              </div>
               {language === 'or' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
             </button>
           </div>
@@ -351,14 +400,7 @@ export default function WelcomeLanding({ onEnter, setActiveTab, language, onLang
             </motion.span>
           </div>
 
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.65, ease: "easeOut" }}
-            className="text-[11px] sm:text-sm text-slate-200 leading-relaxed font-medium max-w-xs sm:max-w-md mx-auto"
-          >
-            {getTranslation('landingDesc', language)}
-          </motion.p>
+
 
           {/* 3D Circular Pedestal Stage */}
           <motion.div 
@@ -448,23 +490,28 @@ export default function WelcomeLanding({ onEnter, setActiveTab, language, onLang
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1.25, ease: "easeOut" }}
-          className="w-full border-t border-slate-900/50 pt-3 flex flex-col md:flex-row items-center justify-between gap-2 text-[8px] sm:text-[10px] text-slate-400 font-extrabold uppercase tracking-widest"
+          className="w-full border-t border-slate-900/50 pt-4 flex flex-col items-center justify-center gap-2 text-[8px] sm:text-[10px] text-slate-400 font-extrabold uppercase tracking-widest text-center"
         >
-          <span className="flex items-center gap-1">
-            RECRUIT.ORG.IN &copy; {new Date().getFullYear()} &bull; Empowering Careers Across India
-          </span>
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 text-slate-500">
-            <button onClick={() => handleBadgeClick('jobs')} className="hover:text-blue-400 transition-colors cursor-pointer">Jobs</button>
-            <span>&bull;</span>
-            <button onClick={() => handleBadgeClick('courses')} className="hover:text-indigo-400 transition-colors cursor-pointer">Training</button>
-            <span>&bull;</span>
-            <button onClick={() => handleBadgeClick('syllabus')} className="hover:text-emerald-400 transition-colors cursor-pointer text-[#00e676] font-bold">School Syllabus</button>
-            <span>&bull;</span>
-            <button onClick={() => handleBadgeClick('interview')} className="hover:text-purple-400 transition-colors cursor-pointer">Interviews</button>
-            <span>&bull;</span>
-            <button onClick={() => handleBadgeClick('resume')} className="hover:text-emerald-400 transition-colors cursor-pointer">Resume</button>
-            <span>&bull;</span>
-            <button onClick={() => handleBadgeClick('business')} className="hover:text-teal-400 transition-colors cursor-pointer">Career Guidance</button>
+          <div className="flex flex-col md:flex-row items-center justify-between w-full gap-2">
+            <span className="flex items-center gap-1">
+              RECRUIT.ORG.IN &copy; {new Date().getFullYear()} &bull; Empowering Careers Across India
+            </span>
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 text-slate-500">
+              <button onClick={() => handleBadgeClick('jobs')} className="hover:text-blue-400 transition-colors cursor-pointer">Jobs</button>
+              <span>&bull;</span>
+              <button onClick={() => handleBadgeClick('courses')} className="hover:text-indigo-400 transition-colors cursor-pointer">Training</button>
+              <span>&bull;</span>
+              <button onClick={() => handleBadgeClick('syllabus')} className="hover:text-emerald-400 transition-colors cursor-pointer text-[#00e676] font-bold">School Syllabus</button>
+              <span>&bull;</span>
+              <button onClick={() => handleBadgeClick('interview')} className="hover:text-purple-400 transition-colors cursor-pointer">Interviews</button>
+              <span>&bull;</span>
+              <button onClick={() => handleBadgeClick('resume')} className="hover:text-emerald-400 transition-colors cursor-pointer">Resume</button>
+              <span>&bull;</span>
+              <button onClick={() => handleBadgeClick('business')} className="hover:text-teal-400 transition-colors cursor-pointer">Career Guidance</button>
+            </div>
+          </div>
+          <div className="text-[7.5px] sm:text-[9px] text-slate-500 tracking-wider font-semibold mt-1.5 uppercase">
+            DEVELOPED AND MAINTAINED BY <span className="text-slate-400 font-bold">BRAGA TECHNOLOGIES PRIVATE LIMITED</span> IN ASSOCIATION WITH <span className="text-slate-400 font-bold">ODITREE SERVICES</span>
           </div>
         </motion.div>
 

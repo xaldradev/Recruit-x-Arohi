@@ -279,7 +279,37 @@ export default function App() {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-IN'; // Default to Indian English, fits government exams boards
+      
+      // Configure language based on user's active choice (English, Hindi, or Odia)
+      if (language === 'hi') {
+        recognition.lang = 'hi-IN';
+      } else if (language === 'or') {
+        recognition.lang = 'or-IN';
+      } else {
+        recognition.lang = 'en-IN';
+      }
+
+      // Dynamically load speech grammars for higher precision in each native tongue
+      const SpeechGrammarList = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+      if (SpeechGrammarList) {
+        const speechRecognitionList = new SpeechGrammarList();
+        let grammarText = '';
+        
+        if (language === 'hi') {
+          grammarText = '#JSGF V1.0; grammar hindiCommands; public <hindi_cmd> = नौकरी | पाठ्यक्रम | कौशल | फ्रेशर | सरकारी नौकरी | परीक्षा | रिज्यूमे | साक्षात्कार | गाइड;';
+        } else if (language === 'or') {
+          grammarText = '#JSGF V1.0; grammar odiaCommands; public <odia_cmd> = ଚାକିରି | ପାଠ୍ୟକ୍ରମ | କୌଶଳ | ଫ୍ରେସର୍ | ସରକାରୀ | ପରୀକ୍ଷା | ରିଜ୍ୟୁମେ | ସାକ୍ଷାତକାର | ଗାଇଡ୍;';
+        } else {
+          grammarText = '#JSGF V1.0; grammar enCommands; public <en_cmd> = jobs | syllabus | skills | fresher | exam | government | resume | interview | career | training;';
+        }
+        
+        try {
+          speechRecognitionList.addFromString(grammarText, 1);
+          recognition.grammars = speechRecognitionList;
+        } catch (grammarErr) {
+          console.warn('SpeechGrammarList load error ignored:', grammarErr);
+        }
+      }
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -2374,7 +2404,7 @@ export default function App() {
   }
 
   return (
-    <div className="bg-[#090714] min-h-screen flex flex-col font-sans antialiased text-slate-100 selection:bg-purple-500 selection:text-white pb-12">
+    <div key={language} className="bg-[#090714] min-h-screen flex flex-col font-sans antialiased text-slate-100 selection:bg-purple-500 selection:text-white pb-12">
       
       {/* 1. Brand Header */}
       <Header

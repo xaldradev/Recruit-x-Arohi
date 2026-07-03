@@ -99,7 +99,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     } catch (err: any) {
       console.error(err);
       let errMsg = err.message || 'An unexpected error occurred.';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/operation-not-allowed' || errMsg.includes('operation-not-allowed')) {
+        errMsg = 'Email/Password sign-in is not enabled in your Firebase project yet. Please go to your Firebase Console -> Authentication -> Sign-in method, and enable "Email/Password". In the meantime, you can sign in using Google!';
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         errMsg = 'Invalid email or password.';
       } else if (err.code === 'auth/email-already-in-use') {
         errMsg = 'This email is already in use.';

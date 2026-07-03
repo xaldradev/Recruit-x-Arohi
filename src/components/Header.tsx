@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, Award, Menu, X, Landmark, Briefcase, Settings, User, BookOpen, FileText, ChevronDown, LogOut, LogIn, ShieldCheck, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -20,6 +20,26 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [countdown, setCountdown] = useState({ hours: 23, minutes: 45, seconds: 20 });
+  const [isHeaderLangOpen, setIsHeaderLangOpen] = useState(false);
+  const headerLangRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (headerLangRef.current && !headerLangRef.current.contains(event.target as Node)) {
+        setIsHeaderLangOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getLangVisual = (lang: Language) => {
+    switch (lang) {
+      case 'en': return 'AA';
+      case 'hi': return 'अ';
+      case 'or': return 'ଅଅ';
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -137,19 +157,75 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
         <div className="flex items-center gap-2.5">
 
           {/* Sleek Globe Language Selector */}
-          <div className="relative flex items-center gap-1.5 px-3 py-1.5 bg-[#17113a]/80 border border-[#3b289c]/60 rounded-xl hover:bg-[#251b5c]/80 hover:border-purple-500/50 transition-all shadow-sm">
-            <Globe className="w-3.5 h-3.5 text-purple-400" />
-            <select
-              value={language}
-              onChange={(e) => onLanguageChange(e.target.value as Language)}
-              className="bg-transparent text-slate-200 hover:text-white text-xs font-bold focus:outline-none cursor-pointer pr-1 border-none appearance-none font-sans"
+          <div className="relative" ref={headerLangRef}>
+            <button
+              onClick={() => setIsHeaderLangOpen(!isHeaderLangOpen)}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#17113a]/80 border border-[#3b289c]/60 rounded-xl hover:bg-[#251b5c]/80 hover:border-purple-500/50 transition-all shadow-sm cursor-pointer"
               title="Change Language / ଭାଷା ବଦଳାନ୍ତୁ"
             >
-              <option value="en" className="bg-[#110d2d] text-slate-200 font-sans font-bold">English</option>
-              <option value="hi" className="bg-[#110d2d] text-slate-200 font-sans font-bold">हिंदी</option>
-              <option value="or" className="bg-[#110d2d] text-slate-200 font-sans font-bold">ଓଡ଼ିଆ</option>
-            </select>
-            <ChevronDown className="w-3 h-3 text-slate-400 pointer-events-none shrink-0" />
+              <Globe className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-purple-200 hover:text-white text-[11px] font-extrabold font-sans tracking-wide">
+                AA | ଅଅ
+              </span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-300 ${isHeaderLangOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <div
+              className={`absolute right-0 mt-2 w-44 bg-[#0d091e] border border-[#3e2b85]/70 rounded-2xl overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.6)] backdrop-blur-lg transition-all duration-300 ${
+                isHeaderLangOpen
+                  ? 'opacity-100 scale-100 pointer-events-auto'
+                  : 'opacity-0 scale-95 pointer-events-none'
+              } z-[60]`}
+            >
+              <div className="px-3.5 py-2 border-b border-[#2b1f5c]/40 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                {getTranslation('selectLang', language)}
+              </div>
+              <button
+                onClick={() => {
+                  onLanguageChange('en');
+                  setIsHeaderLangOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                  language === 'en' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">AA</span>
+                  <span>English</span>
+                </div>
+                {language === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+              </button>
+              <button
+                onClick={() => {
+                  onLanguageChange('hi');
+                  setIsHeaderLangOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                  language === 'hi' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">अ</span>
+                  <span>हिंदी (Hindi)</span>
+                </div>
+                {language === 'hi' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+              </button>
+              <button
+                onClick={() => {
+                  onLanguageChange('or');
+                  setIsHeaderLangOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                  language === 'or' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">ଅଅ</span>
+                  <span>ଓଡ଼ିଆ (Odia)</span>
+                </div>
+                {language === 'or' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+              </button>
+            </div>
           </div>
 
           {onRevisitWelcome && (

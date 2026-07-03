@@ -5,7 +5,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp({
   ...firebaseConfig,
-  authDomain: 'recruit.org.in'
+  authDomain: firebaseConfig.projectId ? `${firebaseConfig.projectId}.firebaseapp.com` : firebaseConfig.authDomain
 });
 export const auth = getAuth(app);
 
