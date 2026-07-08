@@ -5,11 +5,23 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { createResumeDocx } from './server-resume.ts';
+import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Initialize Firebase Admin SDK
+let adminApp: any = null;
+let adminDb: any = null;
+try {
+  adminApp = admin.initializeApp({
+    projectId: 'psychic-tide-htj8l',
+  });
+  adminDb = getFirestore(adminApp, 'ai-studio-recruitorginindi-c82bf65a-f645-4614-aa88-e0ffe79ca95e');
+  console.log('Firebase Admin SDK initialized successfully.');
+} catch (err) {
+  console.error('Failed to initialize Firebase Admin SDK:', err);
+}
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -171,6 +183,278 @@ app.all('/__/auth/*', async (req, res) => {
   } catch (error) {
     console.error('Error proxying firebase auth request:', error);
     res.status(500).send('Authentication proxy error');
+  }
+});
+
+// Firebase Web API Key for client/auth REST API (from firebase-applet-config.json)
+const FIREBASE_API_KEY = "AIzaSyC_jd2c5-43NakD9bgRNXtCbi7p0-6Lnlk";
+
+// API endpoints for Server-Side Auth Proxy
+app.post('/api/auth/signup', async (req, res) => {
+  const { email, password, name } = req.body;
+  try {
+    // 1. Call Firebase Auth REST API to create user
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true })
+    });
+    
+    const data: any = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Failed to sign up.');
+    }
+    
+    const uid = data.localId;
+    
+    // 2. Create the user document in Firestore using the Admin SDK
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const initialData = {
+        uid: uid,
+        email: email,
+        displayName: name,
+        profile: {
+          name: name,
+          email: email,
+          phone: '+91 98765 43210',
+          location: 'Delhi NCR',
+          education: 'Graduate',
+          activeGoal: 'Government & Public Sector Career'
+        },
+        enrolledCourses: [],
+        completedModules: {},
+        checkedChecklist: {},
+        earnedCertificates: [],
+        savedItems: [
+          { id: '1', title: 'PM Mudra Loan Scheme', type: 'Scheme', desc: 'Collateral free funding' },
+          { id: '2', title: 'Full-Stack JavaScript certification', type: 'Course', desc: '12 Weeks upskilling path' }
+        ],
+        applications: [],
+        updatedAt: new Date().toISOString()
+      };
+      await userDocRef.set(initialData);
+      
+      return res.json({
+        success: true,
+        user: {
+          uid,
+          email,
+          displayName: name,
+          idToken: data.idToken,
+          refreshToken: data.refreshToken
+        },
+        userData: initialData
+      });
+    } else {
+      throw new Error('Database is currently offline.');
+    }
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/signin', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    // 1. Call Firebase Auth REST API to sign in
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true })
+    });
+    
+    const data: any = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Invalid email or password.');
+    }
+    
+    const uid = data.localId;
+    
+    // 2. Fetch the user document from Firestore
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const docSnap = await userDocRef.get();
+      let userData = null;
+      
+      if (docSnap.exists) {
+        userData = docSnap.data();
+      } else {
+        // Create initial document if it didn't exist
+        userData = {
+          uid: uid,
+          email: email,
+          displayName: data.displayName || 'Honored Guest',
+          profile: {
+            name: data.displayName || 'Honored Guest',
+            email: email,
+            phone: '+91 98765 43210',
+            location: 'Delhi NCR',
+            education: 'Graduate',
+            activeGoal: 'Government & Public Sector Career'
+          },
+          enrolledCourses: [],
+          completedModules: {},
+          checkedChecklist: {},
+          earnedCertificates: [],
+          savedItems: [
+            { id: '1', title: 'PM Mudra Loan Scheme', type: 'Scheme', desc: 'Collateral free funding' },
+            { id: '2', title: 'Full-Stack JavaScript certification', type: 'Course', desc: '12 Weeks upskilling path' }
+          ],
+          applications: [],
+          updatedAt: new Date().toISOString()
+        };
+        await userDocRef.set(userData);
+      }
+      
+      return res.json({
+        success: true,
+        user: {
+          uid,
+          email,
+          displayName: userData.displayName || data.displayName,
+          idToken: data.idToken,
+          refreshToken: data.refreshToken
+        },
+        userData
+      });
+    } else {
+      throw new Error('Database is currently offline.');
+    }
+  } catch (error: any) {
+    console.error('Signin error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestType: 'PASSWORD_RESET', email })
+    });
+    
+    const data: any = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Failed to send password reset email.');
+    }
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Password reset error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/update-profile', async (req, res) => {
+  const { uid, profile } = req.body;
+  try {
+    if (!uid) return res.status(400).json({ error: 'UID is required.' });
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const docSnap = await userDocRef.get();
+      if (!docSnap.exists) {
+        return res.status(404).json({ error: 'User profile not found.' });
+      }
+      const currentProfile = docSnap.data().profile || {};
+      await userDocRef.update({
+        profile: { ...currentProfile, ...profile },
+        updatedAt: new Date().toISOString()
+      });
+      const updatedSnap = await userDocRef.get();
+      res.json({ success: true, userData: updatedSnap.data() });
+    } else {
+      res.status(500).json({ error: 'Database is currently offline.' });
+    }
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/update-career', async (req, res) => {
+  const { uid, progress } = req.body;
+  try {
+    if (!uid) return res.status(400).json({ error: 'UID is required.' });
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const updatePayload: any = {};
+      if (progress.enrolledCourses) updatePayload.enrolledCourses = progress.enrolledCourses;
+      if (progress.completedModules) updatePayload.completedModules = progress.completedModules;
+      if (progress.checkedChecklist) updatePayload.checkedChecklist = progress.checkedChecklist;
+      if (progress.earnedCertificates) updatePayload.earnedCertificates = progress.earnedCertificates;
+      updatePayload.updatedAt = new Date().toISOString();
+      
+      await userDocRef.update(updatePayload);
+      const updatedSnap = await userDocRef.get();
+      res.json({ success: true, userData: updatedSnap.data() });
+    } else {
+      res.status(500).json({ error: 'Database is currently offline.' });
+    }
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/update-bookmarks', async (req, res) => {
+  const { uid, savedItems } = req.body;
+  try {
+    if (!uid) return res.status(400).json({ error: 'UID is required.' });
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      await userDocRef.update({
+        savedItems,
+        updatedAt: new Date().toISOString()
+      });
+      const updatedSnap = await userDocRef.get();
+      res.json({ success: true, userData: updatedSnap.data() });
+    } else {
+      res.status(500).json({ error: 'Database is currently offline.' });
+    }
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/update-applications', async (req, res) => {
+  const { uid, applications } = req.body;
+  try {
+    if (!uid) return res.status(400).json({ error: 'UID is required.' });
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      await userDocRef.update({
+        applications,
+        updatedAt: new Date().toISOString()
+      });
+      const updatedSnap = await userDocRef.get();
+      res.json({ success: true, userData: updatedSnap.data() });
+    } else {
+      res.status(500).json({ error: 'Database is currently offline.' });
+    }
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/auth/me', async (req, res) => {
+  const { uid } = req.body;
+  try {
+    if (!uid) return res.status(400).json({ error: 'UID is required.' });
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const docSnap = await userDocRef.get();
+      if (docSnap.exists) {
+        res.json({ success: true, userData: docSnap.data() });
+      } else {
+        res.status(404).json({ error: 'User not found' });
+      }
+    } else {
+      res.status(500).json({ error: 'Database is currently offline.' });
+    }
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -1681,20 +1965,24 @@ app.get('/sitemap.xml', (req, res) => {
 });
 
 // Vite middleware and asset delivery setup
-if (process.env.NODE_ENV !== 'production') {
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: 'spa',
-  });
-  app.use(vite.middlewares);
-} else {
-  const distPath = path.join(process.cwd(), 'dist');
-  app.use(express.static(distPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+async function startServer() {
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Recruit.org.in Server running on http://localhost:${PORT}`);
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Recruit.org.in Server running on http://localhost:${PORT}`);
-});
+startServer();

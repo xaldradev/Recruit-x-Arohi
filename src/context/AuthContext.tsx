@@ -1,24 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut as firebaseSignOut, 
-  onAuthStateChanged,
-  updateProfile,
-  sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup
-} from 'firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  onSnapshot 
-} from 'firebase/firestore';
-import { auth, db } from '../firebase';
 import { Application } from '../types';
+
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
 
 interface UserProfile {
   name: string;
@@ -70,126 +57,114 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Monitor firebase auth state
+  // Monitor auth state from local storage on mount and sync with server
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        // Sync user data in real time from Firestore
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        
-        // Listen to changes
-        const unsubFirestore = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setUserData(docSnap.data() as UserData);
+    const loadUser = async () => {
+      try {
+        const storedUser = localStorage.getItem('recruit_user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser) as User;
+          setUser(parsedUser);
+          
+          // Fetch up-to-date userData from secure server-side admin Firestore proxy
+          const response = await fetch('/api/auth/me', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: parsedUser.uid })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setUserData(data.userData);
           } else {
-            // Create initial document
-            const initialData: UserData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'Honored Guest',
-              profile: {
-                name: firebaseUser.displayName || 'Honored Guest',
-                email: firebaseUser.email || '',
-                phone: localStorage.getItem('recruit_user_phone') || '+91 98765 43210',
-                location: localStorage.getItem('recruit_user_location') || 'Delhi NCR',
-                education: localStorage.getItem('recruit_user_education') || 'Graduate',
-                activeGoal: localStorage.getItem('recruit_user_active_goal') || 'Government & Public Sector Career'
-              },
-              enrolledCourses: JSON.parse(localStorage.getItem('recruit_enrolled_courses') || '[]'),
-              completedModules: JSON.parse(localStorage.getItem('recruit_completed_modules') || '{}'),
-              checkedChecklist: JSON.parse(localStorage.getItem('recruit_checked_checklist') || '{}'),
-              earnedCertificates: JSON.parse(localStorage.getItem('recruit_earned_certificates') || '[]'),
-              savedItems: [
-                { id: '1', title: 'PM Mudra Loan Scheme', type: 'Scheme', desc: 'Collateral free funding' },
-                { id: '2', title: 'Full-Stack JavaScript certification', type: 'Course', desc: '12 Weeks upskilling path' }
-              ],
-              applications: JSON.parse(localStorage.getItem('recruit_applications') || '[]'),
-              updatedAt: new Date().toISOString()
-            };
-            setDoc(userDocRef, initialData).then(() => {
-              setUserData(initialData);
-            });
+            // User was removed or session invalid, log them out locally
+            setUser(null);
+            setUserData(null);
+            localStorage.removeItem('recruit_user');
           }
-        }, (error) => {
-          console.error("Firestore error:", error);
-        });
-
-        return () => unsubFirestore();
-      } else {
-        setUserData(null);
+        }
+      } catch (err) {
+        console.error("Error loading stored user:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    };
+    
+    loadUser();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const response = await fetch('/api/auth/signin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to sign in.');
+    }
+    
+    const loggedUser = data.user;
+    setUser(loggedUser);
+    setUserData(data.userData);
+    localStorage.setItem('recruit_user', JSON.stringify(loggedUser));
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCredential.user, { displayName: name });
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name })
+    });
     
-    // Create initial user document in firestore
-    const userDocRef = doc(db, 'users', userCredential.user.uid);
-    const initialData: UserData = {
-      uid: userCredential.user.uid,
-      email: email,
-      displayName: name,
-      profile: {
-        name: name,
-        email: email,
-        phone: '+91 98765 43210',
-        location: 'Delhi NCR',
-        education: 'Graduate',
-        activeGoal: 'Government & Public Sector Career'
-      },
-      enrolledCourses: JSON.parse(localStorage.getItem('recruit_enrolled_courses') || '[]'),
-      completedModules: JSON.parse(localStorage.getItem('recruit_completed_modules') || '{}'),
-      checkedChecklist: JSON.parse(localStorage.getItem('recruit_checked_checklist') || '{}'),
-      earnedCertificates: JSON.parse(localStorage.getItem('recruit_earned_certificates') || '[]'),
-      savedItems: [
-        { id: '1', title: 'PM Mudra Loan Scheme', type: 'Scheme', desc: 'Collateral free funding' },
-        { id: '2', title: 'Full-Stack JavaScript certification', type: 'Course', desc: '12 Weeks upskilling path' }
-      ],
-      applications: JSON.parse(localStorage.getItem('recruit_applications') || '[]'),
-      updatedAt: new Date().toISOString()
-    };
-    await setDoc(userDocRef, initialData);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to sign up.');
+    }
+    
+    const loggedUser = data.user;
+    setUser(loggedUser);
+    setUserData(data.userData);
+    localStorage.setItem('recruit_user', JSON.stringify(loggedUser));
   };
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    throw new Error('Google Sign-In is restricted on custom domains due to Firebase security. Please use the Email & Password option above for instant and 100% secure registration/sign-in!');
   };
 
   const signOutUser = async () => {
-    await firebaseSignOut(auth);
+    setUser(null);
+    setUserData(null);
+    localStorage.removeItem('recruit_user');
   };
 
   const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    const response = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to send password reset email.');
+    }
   };
 
   const updateUserProfile = async (profileUpdate: Partial<UserProfile>) => {
     if (!user) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    const currentProfile = userData?.profile || {
-      name: user.displayName || 'Honored Guest',
-      email: user.email || '',
-      phone: '',
-      location: '',
-      education: '',
-      activeGoal: ''
-    };
-    await updateDoc(userDocRef, {
-      profile: { ...currentProfile, ...profileUpdate },
-      updatedAt: new Date().toISOString()
+    const response = await fetch('/api/auth/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, profile: profileUpdate })
     });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update profile.');
+    }
+    setUserData(data.userData);
   };
 
   const updateCareerProgress = async (progress: {
@@ -199,33 +174,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     earnedCertificates?: string[];
   }) => {
     if (!user) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    const updatePayload: any = {};
-    if (progress.enrolledCourses) updatePayload.enrolledCourses = progress.enrolledCourses;
-    if (progress.completedModules) updatePayload.completedModules = progress.completedModules;
-    if (progress.checkedChecklist) updatePayload.checkedChecklist = progress.checkedChecklist;
-    if (progress.earnedCertificates) updatePayload.earnedCertificates = progress.earnedCertificates;
+    const response = await fetch('/api/auth/update-career', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, progress })
+    });
     
-    updatePayload.updatedAt = new Date().toISOString();
-    await updateDoc(userDocRef, updatePayload);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update progress.');
+    }
+    setUserData(data.userData);
   };
 
   const updateBookmarks = async (savedItems: Array<{ id: string; title: string; type: string; desc: string }>) => {
     if (!user) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    await updateDoc(userDocRef, {
-      savedItems,
-      updatedAt: new Date().toISOString()
+    const response = await fetch('/api/auth/update-bookmarks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, savedItems })
     });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update bookmarks.');
+    }
+    setUserData(data.userData);
   };
 
   const updateApplications = async (applications: Application[]) => {
     if (!user) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    await updateDoc(userDocRef, {
-      applications,
-      updatedAt: new Date().toISOString()
+    const response = await fetch('/api/auth/update-applications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, applications })
     });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update applications.');
+    }
+    setUserData(data.userData);
   };
 
   return (
