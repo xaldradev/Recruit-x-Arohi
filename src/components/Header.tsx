@@ -15,6 +15,22 @@ interface HeaderProps {
   onLanguageChange: (lang: Language) => void;
 }
 
+export const LANGUAGES_LIST = [
+  { code: 'en', native: 'English', symbol: 'AA', english: '' },
+  { code: 'hi', native: 'हिंदी', english: 'Hindi', symbol: 'अ' },
+  { code: 'or', native: 'ଓଡ଼ିଆ', english: 'Odia', symbol: 'ଅ' },
+  { code: 'bn', native: 'বাংলা', english: 'Bengali', symbol: 'বা' },
+  { code: 'te', native: 'తెలుగు', english: 'Telugu', symbol: 'తె' },
+  { code: 'mr', native: 'मराठी', english: 'Marathi', symbol: 'म' },
+  { code: 'ta', native: 'தமிழ்', english: 'Tamil', symbol: 'த' },
+  { code: 'gu', native: 'ગુજરાતી', english: 'Gujarati', symbol: 'ગુ' },
+  { code: 'ur', native: 'اردو', english: 'Urdu', symbol: 'ا' },
+  { code: 'kn', native: 'ಕನ್ನಡ', english: 'Kannada', symbol: 'ಕ' },
+  { code: 'ml', native: 'മലയാളം', english: 'Malayalam', symbol: 'മ' },
+  { code: 'pa', native: 'ਪੰਜਾਬੀ', english: 'Punjabi', symbol: 'ਪ' },
+  { code: 'as', native: 'অসমীয়া', english: 'Assamese', symbol: 'অ' }
+] as const;
+
 export default function Header({ activeTab, onTabChange, onSearchChange, searchQuery, onOpenAuth, onRevisitWelcome, language, onLanguageChange }: HeaderProps) {
   const { user, userData, signOutUser } = useAuth();
 
@@ -37,7 +53,18 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
     switch (lang) {
       case 'en': return 'AA';
       case 'hi': return 'अ';
-      case 'or': return 'ଅଅ';
+      case 'or': return 'ଅ';
+      case 'bn': return 'বা';
+      case 'te': return 'తె';
+      case 'mr': return 'म';
+      case 'ta': return 'த';
+      case 'gu': return 'ગુ';
+      case 'ur': return 'ا';
+      case 'kn': return 'ಕ';
+      case 'ml': return 'മ';
+      case 'pa': return 'ਪ';
+      case 'as': return 'অ';
+      default: return 'AA';
     }
   };
 
@@ -160,71 +187,46 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
           <div className="relative" ref={headerLangRef}>
             <button
               onClick={() => setIsHeaderLangOpen(!isHeaderLangOpen)}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#17113a]/80 border border-[#3b289c]/60 rounded-xl hover:bg-[#251b5c]/80 hover:border-purple-500/50 transition-all shadow-sm cursor-pointer"
-              title="Change Language / ଭାଷା ବଦଳାନ୍ତୁ"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#17113a]/80 border border-[#3b289c]/60 rounded-xl hover:bg-[#251b5c]/80 hover:border-purple-500/50 transition-all shadow-sm cursor-pointer min-w-[70px] justify-between"
+              title="Change Language / ਭାଷା ବଦଳାନ୍ତୁ"
             >
-              <Globe className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-purple-200 hover:text-white text-[11px] font-extrabold font-sans tracking-wide">
-                AA | ଅଅ
-              </span>
+              <div className="flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-purple-200 hover:text-white text-[11px] font-extrabold font-sans tracking-wide">
+                  {getLangVisual(language)}
+                </span>
+              </div>
               <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-300 ${isHeaderLangOpen ? 'rotate-180' : ''}`} />
             </button>
 
             <div
-              className={`absolute right-0 mt-2 w-44 bg-[#0d091e] border border-[#3e2b85]/70 rounded-2xl overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.6)] backdrop-blur-lg transition-all duration-300 ${
+              className={`absolute right-0 mt-2 w-52 max-h-80 overflow-y-auto bg-[#0d091e]/95 border border-[#3e2b85]/70 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)] backdrop-blur-md transition-all duration-300 scrollbar-thin scrollbar-thumb-purple-900/50 scrollbar-track-transparent ${
                 isHeaderLangOpen
                   ? 'opacity-100 scale-100 pointer-events-auto'
                   : 'opacity-0 scale-95 pointer-events-none'
               } z-[60]`}
             >
-              <div className="px-3.5 py-2 border-b border-[#2b1f5c]/40 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              <div className="px-3.5 py-2 border-b border-[#2b1f5c]/40 text-[10px] text-slate-400 font-bold uppercase tracking-wider sticky top-0 bg-[#0d091e] z-10">
                 {getTranslation('selectLang', language)}
               </div>
-              <button
-                onClick={() => {
-                  onLanguageChange('en');
-                  setIsHeaderLangOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
-                  language === 'en' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">AA</span>
-                  <span>English</span>
-                </div>
-                {language === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-              </button>
-              <button
-                onClick={() => {
-                  onLanguageChange('hi');
-                  setIsHeaderLangOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
-                  language === 'hi' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">अ</span>
-                  <span>हिंदी (Hindi)</span>
-                </div>
-                {language === 'hi' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-              </button>
-              <button
-                onClick={() => {
-                  onLanguageChange('or');
-                  setIsHeaderLangOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
-                  language === 'or' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">ଅଅ</span>
-                  <span>ଓଡ଼ିଆ (Odia)</span>
-                </div>
-                {language === 'or' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-              </button>
+              {LANGUAGES_LIST.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    onLanguageChange(lang.code as Language);
+                    setIsHeaderLangOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                    language === lang.code ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">{lang.symbol}</span>
+                    <span>{lang.native} {lang.english ? `(${lang.english})` : ''}</span>
+                  </div>
+                  {language === lang.code && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -451,23 +453,24 @@ export default function Header({ activeTab, onTabChange, onSearchChange, searchQ
                   style={{ transform: 'translateZ(40px)' }}
                 >
                   {/* Mobile Language Selector */}
-                  <div className="mb-4 flex items-center justify-between px-3 py-2 bg-[#120a28]/60 border border-purple-950/40 rounded-2xl">
+                  <div className="mb-4 px-3 py-2.5 bg-[#120a28]/60 border border-purple-950/40 rounded-2xl flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-purple-400" />
                       <span className="text-xs text-slate-300 font-bold">{getTranslation('selectLang', language)}:</span>
                     </div>
-                    <div className="flex gap-2">
-                      {(['en', 'hi', 'or'] as const).map((lang) => (
+                    <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-purple-900/60 scrollbar-track-transparent">
+                      {LANGUAGES_LIST.map((lang) => (
                         <button
-                          key={lang}
-                          onClick={() => onLanguageChange(lang)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${
-                            language === lang
+                          key={lang.code}
+                          onClick={() => onLanguageChange(lang.code as Language)}
+                          className={`px-2 py-1.5 rounded-xl text-[10px] font-black cursor-pointer transition-all text-center truncate ${
+                            language === lang.code
                               ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white border border-purple-400/45 shadow-md'
                               : 'bg-purple-950/35 hover:bg-purple-900/30 text-slate-300 border border-purple-950/40'
                           }`}
+                          title={`${lang.native} ${lang.english ? `(${lang.english})` : ''}`}
                         >
-                          {lang === 'en' ? 'EN' : lang === 'hi' ? 'हिंदी' : 'ଓଡ଼ିଆ'}
+                          {lang.native}
                         </button>
                       ))}
                     </div>

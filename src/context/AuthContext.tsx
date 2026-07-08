@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Application } from '../types';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export interface User {
   uid: string;
@@ -130,7 +132,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    throw new Error('Google Sign-In is restricted on custom domains due to Firebase security. Please use the Email & Password option above for instant and 100% secure registration/sign-in!');
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      const result = await signInWithPopup(auth, provider);
+      const googleUser = result.user;
+      
+      const response = await fetch('/api/auth/google-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: googleUser.uid,
+          email: googleUser.email,
+          displayName: googleUser.displayName
+        })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sync Google user with database.');
+      }
+      
+      const loggedUser = data.user;
+      setUser(loggedUser);
+      setUserData(data.userData);
+      localStorage.setItem('recruit_user', JSON.stringify(loggedUser));
+    } catch (error: any) {
+      console.error('Google Sign-in error:', error);
+      throw error;
+    }
   };
 
   const signOutUser = async () => {

@@ -328,6 +328,65 @@ app.post('/api/auth/signin', async (req, res) => {
   }
 });
 
+app.post('/api/auth/google-sync', async (req, res) => {
+  const { uid, email, displayName } = req.body;
+  try {
+    if (!uid) return res.status(400).json({ error: 'UID is required.' });
+    if (adminDb) {
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const docSnap = await userDocRef.get();
+      let userData = null;
+
+      if (docSnap.exists) {
+        userData = docSnap.data();
+      } else {
+        // Create initial document for Google signed-in user
+        userData = {
+          uid: uid,
+          email: email || '',
+          displayName: displayName || 'Honored Guest',
+          profile: {
+            name: displayName || 'Honored Guest',
+            email: email || '',
+            phone: '+91 98765 43210',
+            location: 'Delhi NCR',
+            education: 'Graduate',
+            activeGoal: 'Government & Public Sector Career'
+          },
+          enrolledCourses: [],
+          completedModules: {},
+          checkedChecklist: {},
+          earnedCertificates: [],
+          savedItems: [
+            { id: '1', title: 'PM Mudra Loan Scheme', type: 'Scheme', desc: 'Collateral free funding' },
+            { id: '2', title: 'Full-Stack JavaScript certification', type: 'Course', desc: '12 Weeks upskilling path' }
+          ],
+          applications: [],
+          updatedAt: new Date().toISOString()
+        };
+        await userDocRef.set(userData);
+      }
+
+      logActivity('visit', `User ${displayName || email || uid} signed in via Google`);
+
+      return res.json({
+        success: true,
+        user: {
+          uid,
+          email,
+          displayName: displayName || userData.displayName || email,
+        },
+        userData
+      });
+    } else {
+      throw new Error('Database is currently offline.');
+    }
+  } catch (error: any) {
+    console.error('Google sync error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.post('/api/auth/reset-password', async (req, res) => {
   const { email } = req.body;
   try {
@@ -1111,12 +1170,26 @@ app.post('/api/chat', async (req, res) => {
 
       // Build dynamic system instruction based on chosen interface language
       let dynamicInstruction = AROHI_SYSTEM_INSTRUCTION;
-      if (language === 'hi') {
-        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: HINDI (हिंदी). The user prefers Hindi. If they write in Hindi, Hinglish, or English, respond primarily in Hindi/Devanagari script or natural Hinglish as appropriate to match their query.]`;
-      } else if (language === 'or') {
-        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ODIA (ଓଡ଼ିଆ). The user prefers Odia. If they write in Odia, English-sounding Odia, or English, respond primarily in Odia script or natural English-sounding Odia as appropriate to match their query.]`;
+      const languageNames: Record<string, string> = {
+        hi: 'HINDI (हिंदी)',
+        or: 'ODIA (ଓଡ଼ିଆ)',
+        bn: 'BENGALI (বাংলা)',
+        te: 'TELUGU (తెలుగు)',
+        mr: 'MARATHI (मराठी)',
+        ta: 'TAMIL (தமிழ்)',
+        gu: 'GUJARATI (ગુજરાતી)',
+        ur: 'URDU (اردو)',
+        kn: 'KANNADA (ಕನ್ನಡ)',
+        ml: 'MALAYALAM (മലയാളം)',
+        pa: 'PUNJABI (ਪੰਜਾਬੀ)',
+        as: 'ASSAMESE (অসমীয়া)'
+      };
+
+      if (language && languageNames[language]) {
+        const langName = languageNames[language];
+        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ${langName}. The user prefers ${langName.split(' ')[0]}. You MUST reply primarily in ${langName} script or in highly natural sounding transliterated script (mixing local phonetic spelling with English keywords) depending on how the user communicates. Match their regional preference warmly, motivatingly, and professionally in that language.]`;
       } else {
-        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ENGLISH. The user prefers English. Maintain default English unless they type in Hindi/Odia/Hinglish/English-sounding Odia, in which case match their chosen language perfectly.]`;
+        dynamicInstruction += `\n\n[USER INTERFACE LANGUAGE: ENGLISH. The user prefers English. Maintain default English unless they type in any Indian regional language or Hinglish/transliterated language, in which case match their chosen language perfectly.]`;
       }
 
       if (messageText.toLowerCase().includes('resume') || messageText.toLowerCase().includes('cv') || messageText.toLowerCase().includes('biodata') || messageText.toLowerCase().includes('career')) {

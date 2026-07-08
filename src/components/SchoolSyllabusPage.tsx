@@ -509,6 +509,197 @@ const getTopicEducationalData = (board: string, subjectId: string, chapterName: 
   return { gist, clarity };
 };
 
+const getChaptersForClass = (catKey: string, classNum: number, board: string): { name: string; description: string; topics: string[]; weightage: string }[] => {
+  const cat = classNum <= 2 ? 'primary' : classNum <= 5 ? 'elementary' : classNum <= 8 ? 'middle' : 'high';
+  const baseChapters = CHAPTER_TEMPLATES[catKey]?.[cat] || CHAPTER_TEMPLATES[catKey]?.high || CHAPTER_TEMPLATES.language.primary;
+
+  return baseChapters.map((ch, idx) => {
+    let name = ch.name;
+    let description = ch.description;
+    let topics = [...ch.topics];
+    let weightage = idx === 0 ? '12 Marks' : idx === 1 ? '15 Marks' : idx === 2 ? '10 Marks' : idx === 3 ? '12 Marks' : '10 Marks';
+
+    if (catKey === 'maths') {
+      if (classNum === 1) {
+        if (idx === 0) { name = "Numbers & Counting (1 to 50)"; description = "Read, write, compare, and understand numbers with place values up to 50."; topics = ["Numbers 1-50", "Tens and Ones", "Single-digit comparison", "Simple skip counting"]; }
+        else if (idx === 1) { name = "Single-Digit Addition & Subtraction"; description = "Basic single-digit addition and subtraction using visual lines and fingers."; topics = ["Sums up to 9", "Subtracting from 9", "Count-on methods", "Picture math sums"]; }
+        else if (idx === 2) { name = "Basic Shapes & Pattern Repeats"; description = "Identifying flat 2D shapes like circles, squares, and triangles, and repeating color series."; topics = ["Circles & Squares", "Symmetry basics", "Color pattern repeating", "Shape matching"]; }
+        else if (idx === 3) { name = "Introductory Indian Coins & Hours"; description = "Recognizing standard 1, 2, 5, 10 rupee coins and reading o'clock times."; topics = ["Rupee coins identification", "Reading full hours", "Days of the week", "Seasons of the year"]; }
+      } else if (classNum === 2) {
+        if (idx === 0) { name = "Numbers & Counting (51 to 100)"; description = "Read, write, and compare numbers up to 100 with double-digit place values."; topics = ["Numbers 51-100", "Hundreds place introduction", "Comparison charts > < =", "Skip counting by 2s and 5s"]; }
+        else if (idx === 1) { name = "Double-Digit Sums (No Carry)"; description = "Horizontal and vertical double-digit addition and subtraction without carry-over."; topics = ["Double-digit sums", "Two-digit subtraction", "Real-world toys word sums", "Addition grid lines"]; }
+        else if (idx === 2) { name = "3D Solids & Spatial Patterns"; description = "Recognizing 3D solid shapes like cubes, spheres, and cylinders in daily life."; topics = ["Cubes & Spheres", "Cylinders & Cones", "Spatial orientation (above/below)", "Advanced repeating shapes"]; }
+        else if (idx === 3) { name = "Paper Currency & Digital Clocks"; description = "Understanding 10, 20, 50, 100 rupee notes and reading half-hour analog times."; topics = ["Indian Rupee Notes", "Reading half-hours (e.g. 4:30)", "Twelve months of the year", "Simple pocket money sums"]; }
+      } else if (classNum === 3) {
+        if (idx === 0) { name = "Numbers up to Lakhs & Place Values"; description = "Understanding 4-digit numbers, expanded forms, and comparing heavy numbers."; topics = ["Numbers up to 10,000", "Expanded notation", "Greater than / Less than", "Place value face value"]; }
+        else if (idx === 1) { name = "Three-Digit Carry-Over Addition"; description = "Mastering vertical carry-over addition and borrow subtraction with three-digit numbers."; topics = ["Vertical column carry-overs", "Borrowing across zeros", "Dynamic word problems", "Estimation of sums"]; }
+        else if (idx === 2) { name = "Basic Fractions: Halves & Quarters"; description = "Visual introduction to dividing shapes and objects into equal fractional parts."; topics = ["Understanding Half (1/2)", "Understanding Quarters (1/4)", "Shading fractional grids", "Comparing simple fractions"]; }
+        else if (idx === 3) { name = "Introduction to Angles & Protractor"; description = "Measuring and identifying simple angles using physical or visual protractors."; topics = ["What is an angle?", "Identifying right angles", "Using a protractor", "Vertex and arms"]; }
+        else if (idx === 4) { name = "Perimeters of Simple Polygons"; description = "Calculating the outer boundary length of squares, rectangles, and triangles."; topics = ["Perimeter definition", "Sum of sides of triangle", "Rectangle outer boundary", "Fencing grid fields"]; }
+      } else if (classNum === 4) {
+        if (idx === 0) { name = "Large Numbers & Lakhs Notation"; description = "Extending place values to 6-digit figures and learning Indian numbering formats."; topics = ["Place value up to Lakhs", "Multiplication tables up to 15", "Estimating large sums", "Word problem math modeling"]; }
+        else if (idx === 1) { name = "Long Division & Equal Sharing"; description = "Performing multi-digit division, calculating quotients, remainders, and divisibility rules."; topics = ["Long division algorithms", "Divisibility tests for 2, 5, 10", "Finding quotients & remainders", "Equal distribution puzzles"]; }
+        else if (idx === 2) { name = "Proper & Improper Fractions"; description = "Understanding mixed numbers, equivalent fractions, and basic decimal conversions."; topics = ["Proper vs Improper", "Mixed fraction layouts", "Equivalent fraction scaling", "Decimal-to-fraction conversions"]; }
+        else if (idx === 3) { name = "Circle Properties: Radius & Diameter"; description = "Using a compass to draw circles and understanding the radius-diameter relationship."; topics = ["Drawing with compass", "Radius & Diameter formula", "Chord and Center", "Semicircles"]; }
+        else if (idx === 4) { name = "Area of Square & Rectangular Floors"; description = "Calculating flat surface area in square centimeters and square meters."; topics = ["Area of rectangle formula", "Area of square formula", "Tile placement layouts", "Floor plan area sums"]; }
+      } else if (classNum === 5) {
+        if (idx === 0) { name = "Numbers up to Crores & Operations"; description = "Extending place values to 8-digit figures and learning international numbering formats."; topics = ["Place value up to Crores", "Multiplication of 4-digit numbers", "International vs Indian systems", "Large-scale financial sums"]; }
+        else if (idx === 1) { name = "LCM, HCF & Prime Factorization"; description = "Finding Lowest Common Multiple, Highest Common Factor, and prime factorization tree structures."; topics = ["Prime factorization tree", "Finding HCF of 3 numbers", "Finding LCM with division", "Real-world matching bell alarms"]; }
+        else if (idx === 2) { name = "Decimal Arithmetic Operations"; description = "Adding, subtracting, multiplying, and dividing decimal numbers with precision."; topics = ["Decimal point alignment", "Multiplying decimals by tenths", "Dividing decimals by integers", "Simplifying decimal equations"]; }
+        else if (idx === 3) { name = "Compass Angles & Segment Construction"; description = "Constructing precise line segments in centimeters and drawing exact angles of 60°, 90°, and 120°."; topics = ["Line segment ruler measures", "Drawing 60° and 120°", "Angle bisection drawing", "Using standard geometry boxes"]; }
+        else if (idx === 4) { name = "Volume of Cubes and Cuboids"; description = "Calculating space capacity of 3D boxes and liquids in liters and cubic centimeters."; topics = ["Volume of cube formula", "Volume of cuboid formula", "Water tank capacity", "Liters to cubic cm conversions"]; }
+      } else if (classNum === 6) {
+        if (idx === 0) { name = "Integers & Number Lines (Class 6)"; description = "Introduction to positive and negative integers and locating them on horizontal axes."; topics = ["Negative integers concept", "Locating on number line", "Comparing negative values", "Absolute values"]; }
+        else if (idx === 1) { name = "Introductory Variables & Coefficients"; description = "Learning algebraic notations, constants, variables, and forming simple equations."; topics = ["Constants vs Variables", "Like and Unlike terms", "Writing expressions", "Simple replacement tests"]; }
+        else if (idx === 2) { name = "Ratio, Proportion & Unitary Method"; description = "Comparing quantities using ratios, verifying proportions, and solving unitary problems."; topics = ["Ratio of two quantities", "Proportion checks (extreme/mean)", "Unitary method steps", "Speed ratio models"]; }
+        else if (idx === 3) { name = "Basic Triangle Congruence Concepts"; description = "Understanding congruent shapes and the fundamental criteria of triangle equality."; topics = ["Congruent figures", "Side-Side-Side (SSS) concept", "Side-Angle-Side (SAS) concept", "Pythagorean triples intro"]; }
+        else if (idx === 4) { name = "Area of Trapeziums & Complex Grids"; description = "Decomposing irregular shapes into rectangles and triangles to find total area."; topics = ["Trapezium boundary formula", "Grid box area approximations", "Decomposing irregular polygons", "Fencing costs calculations"]; }
+      } else if (classNum === 7) {
+        if (idx === 0) { name = "Rational Numbers & BODMAS Rules"; description = "Performing fractions arithmetic under strict BODMAS bracket operation orders."; topics = ["BODMAS precedence laws", "Rational numbers properties", "Additive and Multiplicative inverses", "Negative fraction products"]; }
+        else if (idx === 1) { name = "Linear Equations in One Variable"; description = "Solving algebraic equations by transposing constants and variables to opposite sides."; topics = ["Transposition techniques", "Solving x+a = b", "Age-related word equations", "Fractional variable models"]; }
+        else if (idx === 2) { name = "Percentages & Commercial Applications"; description = "Calculating profit, loss, discount percentages, and introductory simple interest."; topics = ["Profit and Loss percentage", "Discount & Marked Price", "Simple Interest formula I=PRT/100", "Finding rate and time variables"]; }
+        else if (idx === 3) { name = "Properties of Parallel Lines & Angles"; description = "Understanding alternate interior angles, corresponding angles, and co-interior angles."; topics = ["Transversal line properties", "Alternate interior angles", "Corresponding angles", "Angle sum of a triangle proof"]; }
+        else if (idx === 4) { name = "Surface Area & Volume of Prisms"; description = "Calculating the lateral surface area and volume of triangular and rectangular prisms."; topics = ["Prism net structures", "Lateral surface area", "Volume of rectangular prisms", "Comparing prism capacities"]; }
+      } else if (classNum === 8) {
+        if (idx === 0) { name = "Rational Number Sets & Properties"; description = "Exploring closure, commutative, associative, and distributive properties of rational numbers."; topics = ["Rational number closure laws", "Distributive property", "Density of rational numbers", "Irrational number introduction"]; }
+        else if (idx === 1) { name = "Quadratic Polynomials & Factoring"; description = "Factoring trinomials of the form ax^2 + bx + c by splitting the middle term."; topics = ["Splitting middle terms", "Common factors extraction", "Difference of two squares", "Algebraic identities (a+b)^2"]; }
+        else if (idx === 2) { name = "Speed-Time-Distance & Direct Proportions"; description = "Solving direct and inverse variation problems regarding speed, time, and work completions."; topics = ["Direct variation equations", "Inverse variation models", "Work done per day calculations", "Relative speed trains crossing"]; }
+        else if (idx === 3) { name = "Triangles: Congruency & Theorems"; description = "Proving triangle congruences using ASA, AAS, and RHS theorems systematically."; topics = ["Angle-Side-Angle (ASA) proof", "Right-angle Hypotenuse Side (RHS)", "Isosceles triangle theorems", "Angle bisector locus"]; }
+        else if (idx === 4) { name = "Surface Area & Volume of Cylinders"; description = "Calculating total surface area, curved surface area, and volume of cylindrical tanks."; topics = ["Curved surface area 2πrh", "Total surface area 2πr(h+r)", "Cylinder fluid capacity πr^2h", "Hollow metal pipe volumes"]; }
+      } else if (classNum === 9) {
+        if (idx === 0) { name = "Linear Equations in Two Variables"; description = "Solving pairs of equations using graphical representations and substitution methods."; topics = ["Platting linear lines", "Substitution methods", "Consistency of linear pairs", "Unique vs infinite solutions"]; }
+        else if (idx === 1) { name = "Quadratic Equations & Roots (Class 9)"; description = "Introduction to solving quadratic equations by standard factoring and root checking."; topics = ["Roots of quadratic equations", "Factoring by grouping", "Product and sum of roots", "Real-world physics trajectory roots"]; }
+        else if (idx === 2) { name = "Arithmetic Progression Series"; description = "Learning sequence notations, common differences, and formulating the n-th term of an AP."; topics = ["Common difference d", "n-th term formula a_n = a + (n-1)d", "Verifying AP sequences", "Daily savings AP series"]; }
+        else if (idx === 3) { name = "Trigonometry Ratios & Values"; description = "Learning sine, cosine, tangent ratios and standard values for 0°, 30°, 45°, 60°, and 90°."; topics = ["SOH CAH TOA definitions", "Trig ratios of complementary angles", "Standard trig table values", "Trigonometric ratios of unit circles"]; }
+        else if (idx === 4) { name = "Grouped Data Statistics & Mean"; description = "Organizing raw data into grouped frequency distributions and calculating standard arithmetic mean."; topics = ["Grouped frequency tables", "Direct mean calculation method", "Class mark determination", "Frequency polygon drawing"]; }
+        else if (idx === 5) { name = "Distance & Section Coordinate Geometry"; description = "Calculating distances between two coordinate points on Cartesian grids."; topics = ["Cartesian coordinate quadrants", "Distance formula proof", "Collinearity of three points", "Midpoint formula layout"]; }
+      }
+    } else if (catKey === 'science') {
+      if (classNum === 1) {
+        if (idx === 0) { name = "My Five Senses & Healthy Self"; description = "Learning how eyes, ears, nose, tongue, and skin help us explore our home environment."; topics = ["Our sensory organs", "Healthy eating habits", "Brushing and washing", "First aid basics"]; }
+        else if (idx === 1) { name = "Plants & Green Leaves Around Us"; description = "Discovering the simple structure of garden plants, flowers, and trees."; topics = ["Stem and green leaves", "Naming colorful flowers", "Watering small plants", "Recognizing tree barks"]; }
+        else if (idx === 2) { name = "Happy Pets & Wild Animals"; description = "Identifying domestic dogs, cats, cows, and major wild animals like tigers and bears."; topics = ["Farms and pets", "Jungle animals", "Animal food habits", "Insects and birds"]; }
+        else if (idx === 3) { name = "Fresh Air & Safe Water Sources"; description = "Understanding the importance of drinking clean water and breathing fresh country air."; topics = ["Drinking water sources", "Air is everywhere", "Simple rain observations", "Seasons of the year"]; }
+      } else if (classNum === 2) {
+        if (idx === 0) { name = "Our Wonderful Skeletal Structure"; description = "Learning about bones, muscles, posture, and simple physical exercises."; topics = ["Bones and joints", "Muscle movements", "Correct sitting posture", "Healthy playtime"]; }
+        else if (idx === 1) { name = "Seeds and Plant Growth Cycle"; description = "How small seeds germinate into healthy green saplings using soil and sunlight."; topics = ["Seed planting", "Sunlight for plants", "Root water absorption", "Fruits and vegetables"]; }
+        else if (idx === 2) { name = "Animal Shelters & Nests"; description = "Exploring where animals live, bird nest constructions, and caring for animal buddies."; topics = ["Birds and nests", "Stables and kennels", "Animal sound calls", "Protecting stray animals"]; }
+        else if (idx === 3) { name = "Water Cycle Basics & Rain Clouds"; description = "Simple explanations of evaporation, condensation, rainfall, and puddle formations."; topics = ["How clouds form", "Conserving well water", "Puddles evaporation", "Snow and ice properties"]; }
+      } else if (classNum === 3) {
+        if (idx === 0) { name = "Food, Nutrients & Energy"; description = "Testing our food for starch, fats, and understanding healthy balanced diet circles."; topics = ["Carbohydrates and proteins", "Balanced nutrition plate", "Starch iodine test", "Avoiding junk foods"]; }
+        else if (idx === 1) { name = "Our Alimentary Canal & Digestions"; description = "Journey of food from mouth, stomach, small intestine, and digestive enzymes."; topics = ["Skeletal bones layout", "Mouth chewing functions", "Stomach acid roles", "Intestine water absorption"]; }
+        else if (idx === 2) { name = "Solids, Liquids & Gases (Matter)"; description = "Comparing properties of ice, water, and steam, and dissolving kitchen salts."; topics = ["Three states of water", "Solubility of sugar", "Evaporating steam", "Solid/liquid mixtures"]; }
+        else if (idx === 3) { name = "Green Chlorophyll & Photosynthesis"; description = "Detailed look at leaf stomata, transpiration, and how plants manufacture starch."; topics = ["Photosynthesis equation", "Transpiration in leaves", "Taproot vs fibrous roots", "Pollination basics"]; }
+        else if (idx === 4) { name = "Eco-Systems & Food Chains"; description = "Understanding producer, consumer, decomposer roles, and protecting local forests."; topics = ["Food web links", "Recycling leaf waste", "Avoiding plastic bags", "Air and water pollution"]; }
+      } else if (classNum === 4) {
+        if (idx === 0) { name = "Balanced Diets & Deficiency Diseases"; description = "Analyzing vitamins, minerals, and diseases caused by lacking healthy nutrients."; topics = ["Vitamin A, B, C, D sources", "Scurvy and Rickets", "Protein malnutrition", "Goiter and Anemia"]; }
+        else if (idx === 1) { name = "Human Respiration & Circulatory Organs"; description = "Understanding lung oxygen exchange and heart pumping blood vessels."; topics = ["Lungs bronchial tubes", "Heart chambers intro", "Oxygenated blood flow", "Pulse rate checks"]; }
+        else if (idx === 2) { name = "Physical vs Chemical Changes"; description = "Differentiating temporary melting of wax from permanent chemical burning of wood."; topics = ["Melting and freezing", "Rusting of iron", "Chemical reactions basic", "Making salt solutions"]; }
+        else if (idx === 3) { name = "Flower Anatomy & Pollinations"; description = "Identifying petals, sepals, stamens, and pistils, and insect pollination."; topics = ["Pistils and stamens", "Self vs cross pollination", "Insect pollinators (bees)", "Seed structures"]; }
+        else if (idx === 4) { name = "Pollution Types & Ozone Protections"; description = "Studying smoke, toxic water wastes, recycling, and the protective ozone layer."; topics = ["Ozone layer filter", "Biodegradable wastes", "3R waste management", "Industrial water smoke"]; }
+      } else if (classNum === 5) {
+        if (idx === 0) { name = "Plant Nutrients & Organic Manure"; description = "Understanding nitrogen, potassium, phosphorus inputs, and composing organic fertilizers."; topics = ["NPK plant feeds", "Vermicomposting methods", "Nitrogen-fixing bacteria", "Crop rotation values"]; }
+        else if (idx === 1) { name = "Nervous Coordination & Brain Lobes"; description = "Introduction to the brain, spinal cord, sensory neurons, and reflex actions."; topics = ["Cerebrum and cerebellum", "Spinal cord reflex arc", "Optic nerve signals", "Synapse signals basics"]; }
+        else if (idx === 2) { name = "Solubility Indices & Crystallization"; description = "Creating saturated solutions, examining crystal structures, and water hardness properties."; topics = ["Saturated solutions charts", "Crystallizing copper sulfate", "Hard vs soft tap water", "Distillation setups"]; }
+        else if (idx === 3) { name = "Seed Germination Mechanics"; description = "Analyzing hypogeal and epigeal seed germination, moisture, and temperature triggers."; topics = ["Epigeal vs hypogeal", "Moisture seed triggers", "Cotyledons storage", "Root shoot directions"]; }
+        else if (idx === 4) { name = "Atmospheric Layers & Greenhouses"; description = "Layers of the atmosphere, greenhouse effect gases, and global warming impacts."; topics = ["Troposphere to exosphere", "Carbon dioxide heat trapping", "Rising global temperature", "Alternative energy solutions"]; }
+      } else if (classNum === 6) {
+        if (idx === 0) { name = "Plant and Animal Cell Organelles"; description = "Comparing cell membrane, cell wall, nucleus, vacuole, and mitochondria."; topics = ["Cell wall vs membrane", "Mitochondria cellular power", "Chloroplast plant cells", "Cytoplasm fluids"]; }
+        else if (idx === 1) { name = "Metals Reactions with Acids"; description = "Testing how magnesium, zinc, and iron react with diluted hydrochloric acid."; topics = ["Metal-acid reactions", "Hydrogen gas bubble test", "Displacement series intro", "Rust prevention coating"]; }
+        else if (idx === 2) { name = "Mechanical Friction & Air Drag"; description = "Analyzing friction coefficients, sliding resistance, and streamlining fast vehicles."; topics = ["Static vs kinetic friction", "Lubricants application", "Air resistance streamlines", "Spring balance force tests"]; }
+        else if (idx === 3) { name = "Light Reflection & Ray Optics"; description = "Proving light travels in straight lines and investigating flat mirror reflections."; topics = ["Rectilinear propagation", "Incident and reflected rays", "Pinhole camera mechanics", "Lateral inversions"]; }
+        else if (idx === 4) { name = "Pathogenic Microbes & Vaccinations"; description = "Differentiating bacteria, viruses, fungi, and understanding vaccine immune defenses."; topics = ["Bacteria vs virus sizes", "Antibiotic discoveries", "Vaccine antigen triggers", "Preserving milk pasteurization"]; }
+      } else if (classNum === 7) {
+        if (idx === 0) { name = "Cell Division: Mitosis & Meiosis"; description = "Comparing somatic cell mitosis division with gamete cell meiosis reduction division."; topics = ["Prophase metaphase phases", "Chromosome duplication", "Meiosis reduction stages", "Growth vs reproduction cells"]; }
+        else if (idx === 1) { name = "Metal Displacement Series & Corrosion"; description = "Testing reactive metal replacements and analyzing electrochemical iron rusting."; topics = ["Reactivity series ranking", "Zinc replacing copper sulfate", "Salt water rusting acceleration", "Anodizing and galvanizing"]; }
+        else if (idx === 2) { name = "Ohm's Electrical Law & Current Flow"; description = "Verifying the relationship between voltage, electrical current, and resistance."; topics = ["Ohm's Law equation V=IR", "Ammeter and voltmeter setups", "Resistor conductor variables", "Short circuit protections"]; }
+        else if (idx === 3) { name = "Mirrors Optics & Lenses Refractions"; description = "Investigating light refraction rules, Snell's law, and focal points."; topics = ["Concave and convex mirrors", "Lenses focal distance", "Snell's refractive index", "Dispersion rainbow patterns"]; }
+        else if (idx === 4) { name = "Immune White Blood Cells & Vaccines"; description = "Deconstructing phagocytes, lymphocytes, antibody creation, and standard vaccinations."; topics = ["Phagocytosis mechanics", "T-cells and B-cells", "Active vs passive immunity", "Eradicating polio vaccine"]; }
+      } else if (classNum === 8) {
+        if (idx === 0) { name = "Cell Organelles & Cell Nuclei Code"; description = "Detailed structure of chromosomes, chromatin threads, nuclear pores, and DNA strands."; topics = ["Nuclear envelope pores", "Histone proteins chromosomes", "Nucleolus ribosomes synthesis", "Comparing eukaryotic cell nucleoids"]; }
+        else if (idx === 1) { name = "Non-Metals Chemistry & Acids Rain"; description = "Reactions of sulfur, carbon, and nitrogen with oxygen forming acidic oxides."; topics = ["Sulfur dioxide synthesis", "Carbonic and sulfuric acid rains", "Testing pH with indicator paper", "Scrubbing industrial exhaust smoke"]; }
+        else if (idx === 2) { name = "Atmospheric Pressure & Pascal's Fluids"; description = "Measuring air pressure using barometers and demonstrating Pascal's fluid pressure transfer."; topics = ["Torricelli mercury barometer", "Pascal's fluid pistons multipliers", "Water pressure with depths", "Suction cup vacuum mechanics"]; }
+        else if (idx === 3) { name = "Human Eye Optics & Lens Corrections"; description = "Anatomy of the retina, cornea, and correcting myopia and hypermetropia using lenses."; topics = ["Cornea and crystalline lens", "Retinal rod and cone photoreceptors", "Myopia concave correction", "Hypermetropia convex correction"]; }
+        else if (idx === 4) { name = "Antigen-Antibody Locks & Vaccines"; description = "Studying molecular locking models of antigens and antibodies to prevent pandemics."; topics = ["Antigen receptor matches", "Memory cells immune recalls", "mRNA vaccine principles", "Herd immunity percentages"]; }
+      } else if (classNum === 9) {
+        if (idx === 0) { name = "Chemical Formula Synthesis Rules"; description = "Balancing multi-compound chemical equations using valency, radicals, and molecular weight."; topics = ["Valency crosses of radicals", "Balancing chemical equations", "Conservation of molecular mass", "Reactants state symbols"]; }
+        else if (idx === 1) { name = "Carbon Compounds & HOMOLOGOUS Series"; description = "Nomenclature of saturated alkanes and unsaturated alkenes and saponification steps."; topics = ["Carbon carbon covalent bonds", "Homologous alkane chains", "IUPAC prefixes (Meth Eth Prop)", "Saponification soap making"]; }
+        else if (idx === 2) { name = "Life Processes & Blood Transports"; description = "Deconstructing the human heart, xylem and phloem transport, and kidney nephron actions."; topics = ["Heart auricles and ventricles", "Double circulation system", "Xylem water suction pull", "Nephron urine filtration"]; }
+        else if (idx === 3) { name = "Lenses Optics & Snell's Refractions"; description = "Applying mirror and lens formulas to calculate magnification and focal centers."; topics = ["Lens formula 1/f = 1/v - 1/u", "Magnification ratios", "Critical angle total reflection", "Prism angle of deviation"]; }
+        else if (idx === 4) { name = "Electricity, Series & Parallel Resistors"; description = "Analyzing total resistance inside series and parallel circuit loops."; topics = ["Series resistors R1+R2+R3", "Parallel equations 1/R", "Joule's heating law", "Fuses and circuit breakers"]; }
+        else if (idx === 5) { name = "Hormones Coordination & Reflex Arc"; description = "Detailed study of brain hemispheres, spinal reflexes, and hormone loops."; topics = ["Cerebral cortex functions", "Reflex arc synapse speed", "Thyroxine insulin loops", "Plant auxins growth directions"]; }
+      }
+    } else if (catKey === 'social') {
+      if (classNum === 1) {
+        if (idx === 0) { name = "Our Beautiful Family & Community Helpers"; description = "Learning about doctors, teachers, police officers, and firefighters."; topics = ["My loving parents", "Police officers and doctors", "Emergency call numbers", "Helpful postal workers"]; }
+        else if (idx === 1) { name = "Directions: North, South, East, West"; description = "Finding locations around school and home using four cardinal directions."; topics = ["Cardinal directions basic", "Locating my home", "Reading a map key", "Coloring our national flag"]; }
+        else if (idx === 2) { name = "Caring For Our Neighbors & Animals"; description = "Understanding local neighborhood greetings and being kind to animals."; topics = ["Caring for friends", "Greeting our elders", "Feeding hungry birds", "Keeping streets clean"]; }
+        else if (idx === 3) { name = "Happy Household & Family Chores"; description = "Sharing simple household responsibilities and respecting grandparents."; topics = ["Helping wipe dishes", "Cleaning study desks", "Family history trees", "Sharing toys fairly"]; }
+      } else if (classNum === 2) {
+        if (idx === 0) { name = "Our Town Helpers & Panchayats"; description = "Learning how local post offices, banks, and municipal offices operate."; topics = ["Local Post Office functions", "Primary health clinics", "How banks keep money safe", "Traffic police safety rules"]; }
+        else if (idx === 1) { name = "Map Scales & Drawing Simple Rooms"; description = "Making grid maps of study bedrooms and classrooms with ratio scales."; topics = ["Ratios on paper", "Measuring tables in inches", "Compass directions", "Blue water representations"]; }
+        else if (idx === 2) { name = "Clean Parks & Neighborhood Gardens"; description = "Organizing local clean-ups and planting saplings in neighborhood parks."; topics = ["Dumping trash in bins", "Planting garden shrubs", "Protecting park benches", "Sharing public swings"]; }
+        else if (idx === 3) { name = "Family Celebrations & Festivals"; description = "Learning about traditional Indian festivals, harvest celebrations, and seasonal songs."; topics = ["National festivals days", "Harvest holidays (Pongal/Bihu)", "Traditional clothing wear", "Respecting all faiths"]; }
+      } else if (classNum === 3) {
+        if (idx === 0) { name = "Our Country India: Physical Divisions"; description = "Introduction to Himalayan ranges, coastal plains, Deccan peninsula, and major rivers."; topics = ["Himalayas snow peaks", "Ganges and Yamuna paths", "Deccan plateau", "Sunderban tiger deltas"]; }
+        else if (idx === 1) { name = "Ancient Civilizations: Indus Valley"; description = "Discovering Mohenjo-daro street grids, brick sewers, and public bath designs."; topics = ["Indus Valley town plans", "Great Bath structures", "Harappan seals", "Clay terracotta toys"]; }
+        else if (idx === 2) { name = "Indian Constitution & Fundamental Rights"; description = "Understanding who drafts our constitution, voting rights, and child education."; topics = ["Dr. B.R. Ambedkar assembly", "What is Preamble?", "Gram Panchayat duties", "Right to Education Act"]; }
+        else if (idx === 3) { name = "Odisha Heritage & Konark Sun Temple"; description = "History of Emperor Narasimhadeva I, Chilika Lake, and Khandagiri caves."; topics = ["Konark Temple architecture", "Chilika birds sanctuary", "Khandagiri caves", "Odisha maritime histories"]; }
+        else if (idx === 4) { name = "Globe Coordinates: Latitudes & Longitudes"; description = "Understanding the equator, prime meridian, and calculating simple time differences."; topics = ["Equator zero degrees", "Parallels of latitude", "Meridians of longitude", "Calculations of time zones"]; }
+      } else if (classNum === 4) {
+        if (idx === 0) { name = "Himalayan Forest Reserves & Climates"; description = "Studying alpine vegetation, evergreen forests, and extreme weather zones in India."; topics = ["Alpine trees conifers", "Evergreen vs deciduous trees", "Monsoon cloud pathways", "Rain shadow desert dry zones"]; }
+        else if (idx === 1) { name = "Emperor Ashoka the Great & Dhamma"; description = "The Kalinga War, rock inscriptions, and spreading peaceful Dhamma rules."; topics = ["Kalinga War history", "Buddhist pillars inscriptions", "Ashoka's peaceful edicts", "Spread of Buddhism paths"]; }
+        else if (idx === 2) { name = "Municipal Corporations & State Assemblies"; description = "Understanding local city mayors, MLC/MLA roles, and law-making bodies."; topics = ["City Municipal Mayor duties", "State Assembly structures", "Governor and Chief Minister", "Solving local water disputes"]; }
+        else if (idx === 3) { name = "Odisha Maritime Trade & Boita Bandana"; description = "Historic trade routes with Bali, Sumatra, Java, and traditional festivals."; topics = ["Sadhabas merchant ships", "Boita Bandana festival", "Spices and silk trade", "Odisha ancient ports"]; }
+        else if (idx === 4) { name = "Reading Standard Topographical Maps"; description = "Analyzing contour lines, physical color codings, and road symbol legends."; topics = ["Contour lines heights", "Ruler scale calculations", "Physical brown colors peaks", "Road network symbols"]; }
+      } else if (classNum === 5) {
+        if (idx === 0) { name = "Deccan Plateau Soil & Mineral Mapping"; description = "Exploring black cotton soil, iron ore mines, coal basins, and resource distribution."; topics = ["Deccan volcanic rocks", "Black cotton soils", "Chota Nagpur iron mines", "Conserving rich minerals"]; }
+        else if (idx === 1) { name = "Golden Gupta Empire & Art"; description = "Historical reign of Samudragupta, metallurgy, Ayurvedic medical advancements, and mathematics."; topics = ["Samudragupta gold coins", "Iron Pillar of Delhi", "Aryabhata decimal math", "Classical Sanskrit dramas"]; }
+        else if (idx === 2) { name = "Parliamentary Lok Sabha & Bills"; description = "Studying the structure of Lok Sabha and Rajya Sabha, and bill passing stages."; topics = ["Speaker of Lok Sabha", "Bill reading processes", "Presidential approvals", "Constitutional amendment rules"]; }
+        else if (idx === 3) { name = "Odisha Freedom Struggles & Paika Rebel"; description = "Analyzing Baxi Jagabandhu, Paika Rebellion (1817), and Satyabadi school."; topics = ["Paika Bidroha rebellion", "Baxi Jagabandhu leaders", "Satyabadi Vana Vidyalaya", "Salt Satyagraha Odisha"]; }
+        else if (idx === 4) { name = "Time Zone Math & Prime Meridians"; description = "Calculating exact local times across global cities using longitude offsets."; topics = ["Prime Meridian 0° GMT", "15 degrees equals one hour", "East-west longitude math", "International Date Line"]; }
+      } else if (classNum === 6) {
+        if (idx === 0) { name = "The Delhi Sultanate & Slave Dynasty"; description = "Political rule of Qutbuddin Aibak, Razia Sultana, and administrative taxation."; topics = ["Slave dynasty Qutbuddin", "Razia Sultana first queen", "Iqta tax land distribution", "Qutb Minar architecture"]; }
+        else if (idx === 1) { name = "Atmospheric Troposphere & Air Cycles"; description = "Deconstructing nitrogen, oxygen ratios, troposphere heights, and wind directions."; topics = ["Atmospheric gas composition", "Troposphere weather changes", "High-low pressure winds", "Global temperature convection"]; }
+        else if (idx === 2) { name = "Lok Sabha, Rajya Sabha & Judiciary"; description = "Detailed study of parliamentary members, bills, and Supreme Court protections."; topics = ["MPs election criteria", "Rajya Sabha tenure", "Supreme Court judges", "Independent judiciary power"]; }
+        else if (idx === 3) { name = "Steel Plants & Heavy Metal Deposits"; description = "Mapping major public sector steel industries, iron mines, and transport highways."; topics = ["Rourkela Steel Plant", "Bhilai heavy industries", "National Highway grids", "Export cargo ports"]; }
+        else if (idx === 4) { name = "Satyabadi School & Gopabandhu Das"; description = "Historic contribution of Utkalmani Gopabandhu Das and salt satyagraha marches."; topics = ["Utkalmani Gopabandhu Das", "Satyabadi school open air", "Samaja newspaper origins", "Salt satyagraha Inchudi"]; }
+      } else if (classNum === 7) {
+        if (idx === 0) { name = "The Mughal Empire: Akbar & Administrations"; description = "Reigns of Babur, Akbar, Shah Jahan, and details of Mansabdari administration systems."; topics = ["Battle of Panipat", "Mansabdari rank military", "Akbar's religious tolerances", "Taj Mahal monument details"]; }
+        else if (idx === 1) { name = "Ocean Currents & Deep Marine Tides"; description = "Analyzing warm Gulf Stream currents, low-high tides physics, and saline counts."; topics = ["Warm vs cold ocean currents", "Gravitational lunar tides", "Salinity ocean water graphs", "Marine shipping routes"]; }
+        else if (idx === 2) { name = "Passing of Parliamentary Bills & Acts"; description = "Deconstructing ordinary bills, money bills, debate sessions, and committee hearings."; topics = ["Ordinary bill vs Money bill", "Three reading stages", "Joint session resolutions", "Veto powers of President"]; }
+        else if (idx === 3) { name = "Commercial Farming & Cash Crops Mapping"; description = "Mapping cotton, tea, sugarcane plantations, and drip-irrigation networks."; topics = ["Black soil cotton zones", "Assam tea garden terracing", "Drip irrigation conservation", "Sugarcane milling hubs"]; }
+        else if (idx === 4) { name = "Odisha Salt Satyagraha & Inchudi March"; description = "Understanding local Satyagraha movements, salt boiling, and Gopabandhu's arrests."; topics = ["Inchudi salt march leaders", "Women satyagrahis (Rama Devi)", "Swaraj ashram setups", "Boycotting foreign textiles"]; }
+      } else if (classNum === 8) {
+        if (idx === 0) { name = "Mughal Empire Decline & East India Co"; description = "Analyzing Battle of Plassey, Doctrine of Lapse, and British trading expand."; topics = ["Battle of Plassey 1757", "Doctrine of Lapse annexations", "Decline of Mughals Aurangzeb", "EIC trading factories"]; }
+        else if (idx === 1) { name = "Earth's Internal Mantle & Core Layers"; description = "Studying Sial and Sima layers, plate boundaries, and seismograph recordings."; topics = ["Sial and Sima rock compositions", "Tectonic continental plates", "Seismograph Richter scale ratings", "Volcanic magma vent pipes"]; }
+        else if (idx === 2) { name = "Supreme Court Judicial Review Power"; description = "Analyzing fundamental rights protections, writ petitions, and public interest litigation."; topics = ["Writ of Habeas Corpus", "Public Interest Litigation (PIL)", "Judicial review of laws", "District court structures"]; }
+        else if (idx === 3) { name = "Mineral Mining Zones & Environmental Laws"; description = "Balancing industrial mining demands with forest tribal conservation laws."; topics = ["Coal mining environmental impacts", "Tribal lands forest acts", "Sustainable development laws", "Renewable solar wind grids"]; }
+        else if (idx === 4) { name = "Odisha Paika Rebellion Leaders (1817)"; description = "Deconstructing Baxi Jagabandhu's Paika rebellion, and historical battles with British."; topics = ["Baxi Jagabandhu military general", "Paikas soldier class", "Khurda fort siege battles", "Paika rebellion triggers"]; }
+      } else if (classNum === 9) {
+        if (idx === 0) { name = "Rise of European Nationalism (Class 9)"; description = "French revolution, estate assemblies, Napoleonic codes, and Italian unifications."; topics = ["French Estates Assembly", "Fall of Bastille 1789", "Napoleonic civil codes", "Garibaldi Italian unification"]; }
+        else if (idx === 1) { name = "Nationalism in India & Rowlatt Act"; description = "Detailed study of Mahatma Gandhi's return, Jallianwala Bagh, and Dandi salt march."; topics = ["Rowlatt Act 1919 clampdowns", "Jallianwala Bagh massacre", "Non-Cooperation Movement 1920", "Dandi Salt March 1930"]; }
+        else if (idx === 2) { name = "Alluvial, Black and Red Soils Mapping"; description = "Soil classifications across Indian agricultural states and forest soils properties."; topics = ["Alluvial fertile riverbeds", "Black volcanic clay soils", "Red iron-oxide dry soils", "Soil erosion prevention"]; }
+        else if (idx === 3) { name = "Belgian vs Sri Lankan Power Sharing"; description = "Comparing community government power sharing with majoritarian crisis."; topics = ["Belgian decentralization model", "Brussels shared council", "Sri Lankan majoritarian crisis", "Schedules of decentralization"]; }
+        else if (idx === 4) { name = "GDP evaluation & Economy Sectors"; description = "Analyzing primary, secondary, and tertiary sectors, and NREGA employment guarantees."; topics = ["Primary agriculture sectors", "Secondary factories manufacturing", "Tertiary software services", "GDP estimation formulas"]; }
+      }
+    } else if (catKey === 'language') {
+      name = `${ch.name} (Class ${classNum})`;
+    } else if (['physics', 'chemistry', 'biology', 'history', 'geography'].includes(catKey)) {
+      name = `${ch.name} (Class ${classNum})`;
+      description = `Class ${classNum} graded curriculum focusing on standard ${ch.name.toLowerCase()} syllabus criteria and study blueprints.`;
+      topics = ch.topics.map(t => `${t} (Class ${classNum} Concept)`);
+    }
+
+    return {
+      name,
+      weightage,
+      description,
+      topics
+    };
+  });
+};
+
 const buildSyllabusData = (): SyllabusData => {
   const data: SyllabusData = {
     odia: {},
@@ -527,12 +718,10 @@ const buildSyllabusData = (): SyllabusData => {
       else if (subTemplate.id === 'science') catKey = 'science';
       else if (subTemplate.id === 'social') catKey = 'social';
 
-      const baseChapters = CHAPTER_TEMPLATES[catKey]?.[cat] || CHAPTER_TEMPLATES.language.primary;
-      const chapters = baseChapters.map((ch, idx) => {
-        const wt = idx === 0 ? '12 Marks' : idx === 1 ? '15 Marks' : idx === 2 ? '10 Marks' : idx === 3 ? '12 Marks' : '10 Marks';
+      const chapters = getChaptersForClass(catKey, c, 'odia').map((ch) => {
         return {
           name: translateToOdia(ch.name),
-          weightage: wt,
+          weightage: ch.weightage,
           description: translateToOdia(ch.description),
           topics: ch.topics.map(t => translateToOdia(t))
         };
@@ -567,16 +756,7 @@ const buildSyllabusData = (): SyllabusData => {
       else if (subTemplate.id === 'science') catKey = 'science';
       else if (subTemplate.id === 'social') catKey = 'social';
 
-      const baseChapters = CHAPTER_TEMPLATES[catKey]?.[cat] || CHAPTER_TEMPLATES.language.primary;
-      const chapters = baseChapters.map((ch, idx) => {
-        const wt = idx === 0 ? '12 Marks' : idx === 1 ? '15 Marks' : idx === 2 ? '10 Marks' : idx === 3 ? '12 Marks' : '10 Marks';
-        return {
-          name: ch.name,
-          weightage: wt,
-          description: ch.description,
-          topics: ch.topics
-        };
-      });
+      const chapters = getChaptersForClass(catKey, c, 'cbse');
 
       return {
         id: `${subTemplate.id}-cbse-${c}`,
@@ -596,16 +776,7 @@ const buildSyllabusData = (): SyllabusData => {
       let catKey = subTemplate.id;
       if (subTemplate.id === 'english') catKey = 'language';
 
-      const baseChapters = CHAPTER_TEMPLATES[catKey]?.[cat] || CHAPTER_TEMPLATES[catKey]?.high || CHAPTER_TEMPLATES.language.primary;
-      const chapters = baseChapters.map((ch, idx) => {
-        const wt = idx === 0 ? '12 Marks' : idx === 1 ? '15 Marks' : idx === 2 ? '10 Marks' : idx === 3 ? '12 Marks' : '10 Marks';
-        return {
-          name: ch.name,
-          weightage: wt,
-          description: ch.description,
-          topics: ch.topics
-        };
-      });
+      const chapters = getChaptersForClass(catKey, c, 'icse');
 
       return {
         id: `${subTemplate.id}-icse-${c}`,

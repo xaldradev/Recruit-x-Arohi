@@ -19,6 +19,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Language, getTranslation } from '../translations';
+import { LANGUAGES_LIST } from './Header';
 
 interface WelcomeLandingProps {
   onEnter: () => void;
@@ -209,68 +210,45 @@ export default function WelcomeLanding({ onEnter, setActiveTab, language, onLang
         <div className="relative">
           <button 
             onClick={() => setIsLangOpen(!isLangOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#120d2b]/80 hover:bg-[#1b143f]/80 border border-[#3e2b85]/50 rounded-full text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#120d2b]/80 hover:bg-[#1b143f]/80 border border-[#3e2b85]/50 rounded-full text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-md backdrop-blur-md cursor-pointer min-w-[85px] justify-between"
           >
-            <Globe className="w-3.5 h-3.5 text-purple-400 animate-spin" style={{ animationDuration: '15s' }} />
-            <span className="font-extrabold text-[11px] tracking-wide text-purple-200">AA | ଅଅ</span>
+            <div className="flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 text-purple-400 animate-spin" style={{ animationDuration: '15s' }} />
+              <span className="font-extrabold text-[11px] tracking-wide text-purple-200">
+                {LANGUAGES_LIST.find(l => l.code === language)?.symbol || 'AA'}
+              </span>
+            </div>
             <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
           </button>
           
           <div 
-            className={`absolute right-0 mt-2 w-44 bg-[#0d091e] border border-[#3e2b85]/70 rounded-2xl overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.6)] backdrop-blur-lg transition-all duration-300 ${
+            className={`absolute left-1/2 -translate-x-1/2 mt-2 w-52 max-h-72 overflow-y-auto bg-[#0d091e]/95 border border-[#3e2b85]/70 rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,0.6)] backdrop-blur-md transition-all duration-300 scrollbar-thin scrollbar-thumb-purple-900/50 scrollbar-track-transparent ${
               isLangOpen 
                 ? 'opacity-100 scale-100 pointer-events-auto' 
                 : 'opacity-0 scale-95 pointer-events-none'
             } z-[60]`}
           >
-            <div className="px-3.5 py-2 border-b border-[#2b1f5c]/40 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <div className="px-3.5 py-2 border-b border-[#2b1f5c]/40 text-[10px] text-slate-400 font-bold uppercase tracking-wider sticky top-0 bg-[#0d091e] z-10">
               {getTranslation('selectLang', language)}
             </div>
-            <button
-              onClick={() => {
-                onLanguageChange('en');
-                setIsLangOpen(false);
-              }}
-              className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
-                language === 'en' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">AA</span>
-                <span>English</span>
-              </div>
-              {language === 'en' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-            </button>
-            <button
-              onClick={() => {
-                onLanguageChange('hi');
-                setIsLangOpen(false);
-              }}
-              className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
-                language === 'hi' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">अ</span>
-                <span>हिंदी (Hindi)</span>
-              </div>
-              {language === 'hi' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-            </button>
-            <button
-              onClick={() => {
-                onLanguageChange('or');
-                setIsLangOpen(false);
-              }}
-              className={`w-full text-left px-4 py-3 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
-                language === 'or' ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">ଅଅ</span>
-                <span>ଓଡ଼ିଆ (Odia)</span>
-              </div>
-              {language === 'or' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-            </button>
+            {LANGUAGES_LIST.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  onLanguageChange(lang.code as Language);
+                  setIsLangOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer hover:bg-white/5 ${
+                  language === lang.code ? 'bg-[#7c3aed]/25 text-purple-200 font-bold' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-8 text-center text-[10px] font-bold bg-[#1b143f] px-1.5 py-0.5 rounded border border-[#3e2b85]/50 text-slate-300">{lang.symbol}</span>
+                  <span>{lang.native} {lang.english ? `(${lang.english})` : ''}</span>
+                </div>
+                {language === lang.code && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+              </button>
+            ))}
           </div>
         </div>
       </div>
